@@ -1,0 +1,23 @@
+# ── secrets (never commit) ───────────────────────────────
+**/.env
+**/.env.local
+**/.env*.local
+
+# ── dependencies / build output ──────────────────────────
+**/node_modules/
+**/.next/
+**/out/
+*.tsbuildinfo
+next-env.d.ts
+
+# ── OS / tooling ─────────────────────────────────────────
+.DS_Store
+.playwright-mcp/
+**/.claude/settings.local.json
+.vercel
+
+# ── client-confidential / local-only (kept out of the public repo) ──
+Product Details/
+*.docx
+*.tar.gz
+~$*

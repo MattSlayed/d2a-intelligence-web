@@ -1,0 +1,2349 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>D2A · Target Account Intelligence Agent — NOVATEK Agentic OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Syne:wght@600;700;800&display=swap" rel="stylesheet" />
+<style>
+/* ════════════════════════════════════════════════════════════════════
+   NOVATEK Agentic OS — D2A demo
+   Visual schema borrowed from outsourc-e/hermes-workspace (scifi dark)
+   Single-file build. No dependencies beyond Google Fonts.
+   ════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --bg:           #060b18;
+  --sidebar:      #0a1628;
+  --panel:        #0d1b2a;
+  --card:         #112240;
+  --card-2:       #153258;
+  --border:       #1a3a5c;
+  --border-soft:  #142d4a;
+  --text:         #e0f7fa;
+  --text-soft:    #b8d5e0;
+  --muted:        #5d9bb8;
+  --accent:       #00f0ff;
+  --accent-2:     #00b8d4;
+  --accent-soft:  rgba(0, 240, 255, 0.08);
+  --accent-line:  rgba(0, 240, 255, 0.25);
+  --success:      #64ffda;
+  --warning:      #ff6b35;
+  --danger:       #ff5252;
+  --gold:         #ffd166;
+  --magenta:      #ff4ecd;
+
+  --shadow-1: 0 1px 3px rgba(0, 240, 255, 0.06);
+  --shadow-2: 0 4px 16px rgba(0, 0, 0, 0.5), 0 0 1px rgba(0, 240, 255, 0.10);
+  --shadow-3: 0 12px 40px rgba(0, 0, 0, 0.6), 0 0 2px rgba(0, 240, 255, 0.08);
+  --glow:     0 0 24px rgba(0, 240, 255, 0.35);
+
+  --font-ui:   'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Cascadia Code', Consolas, monospace;
+  --font-display: 'Syne', 'Inter', sans-serif;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+
+  --sidebar-w: 232px;
+  --inspector-w: 360px;
+  --header-h: 64px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  background:
+    radial-gradient(ellipse 1200px 700px at 80% -10%, rgba(0, 240, 255, 0.06), transparent 60%),
+    radial-gradient(ellipse 900px 600px at -10% 110%, rgba(0, 184, 212, 0.05), transparent 60%),
+    var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  letter-spacing: 0.005em;
+}
+
+/* Subtle grid underlay for HUD feel */
+body::before {
+  content: '';
+  position: fixed; inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(0, 240, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 240, 255, 0.025) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+/* Soft scanline overlay */
+body::after {
+  content: '';
+  position: fixed; inset: 0;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(0, 240, 255, 0.012) 3px,
+    rgba(0, 240, 255, 0.012) 4px
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+::selection { background: var(--accent); color: #00171f; }
+
+/* Scrollbars */
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-track { background: transparent; }
+*::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.18); border-radius: 99px; }
+*::-webkit-scrollbar-thumb:hover { background: rgba(0, 240, 255, 0.32); }
+
+/* ═════════════════════ SHELL ═════════════════════ */
+.app {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr var(--inspector-w);
+  grid-template-rows: var(--header-h) 1fr;
+  grid-template-areas:
+    "sidebar header   inspector"
+    "sidebar main     inspector";
+  height: 100vh;
+}
+
+/* ═════════════════════ SIDEBAR ═════════════════════ */
+.sidebar {
+  grid-area: sidebar;
+  background: var(--sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 18px 14px 14px;
+  gap: 18px;
+}
+.brand {
+  display: flex; align-items: center; gap: 12px;
+  padding: 2px 6px 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.brand svg { flex-shrink: 0; }
+.brand-text {
+  display: flex; flex-direction: column; gap: 1px;
+}
+.brand-wordmark {
+  font-family: var(--font-display);
+  font-weight: 800;
+  letter-spacing: 0.10em;
+  font-size: 15px;
+  line-height: 1;
+}
+.brand-wordmark .nova { color: var(--text); }
+.brand-wordmark .tek { color: var(--accent); text-shadow: 0 0 10px rgba(0, 240, 255, 0.6); }
+.brand-suffix {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.nav-section { display: flex; flex-direction: column; gap: 2px; }
+.nav-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  padding: 8px 10px 4px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  color: var(--text-soft);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.14s ease;
+  position: relative;
+}
+.nav-item:hover {
+  background: var(--accent-soft);
+  color: var(--text);
+}
+.nav-item.active {
+  background: linear-gradient(90deg, rgba(0, 240, 255, 0.12), rgba(0, 240, 255, 0.04));
+  color: var(--accent);
+  border-color: var(--accent-line);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.nav-item .nav-ico {
+  width: 16px; height: 16px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: currentColor;
+  opacity: 0.85;
+}
+.nav-item .nav-badge {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  border: 1px solid var(--accent-line);
+}
+
+.sidebar-footer {
+  margin-top: auto;
+  display: flex; flex-direction: column; gap: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+}
+.account-pill {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  font-size: 12px;
+}
+.account-pill .av {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #00171f;
+  display: flex; align-items: center; justify-content: center;
+  font-weight: 700;
+  font-size: 11px;
+  font-family: var(--font-display);
+}
+.account-pill .who { display: flex; flex-direction: column; line-height: 1.2; }
+.account-pill .who strong { color: var(--text); font-weight: 600; font-size: 12px; }
+.account-pill .who span { color: var(--muted); font-size: 10px; font-family: var(--font-mono); }
+.sidebar-meta {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  text-align: center;
+  letter-spacing: 0.10em;
+  padding: 4px 0 0;
+}
+
+/* ═════════════════════ HEADER ═════════════════════ */
+.header {
+  grid-area: header;
+  background: var(--sidebar);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 24px;
+  position: relative;
+}
+.crumb {
+  display: flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.06em;
+}
+.crumb .sep { opacity: 0.5; }
+.crumb .here { color: var(--text); }
+.crumb .live-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px var(--success);
+  margin-right: 4px;
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.kbd {
+  margin-left: auto;
+  display: flex; align-items: center; gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--panel);
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.kbd:hover { border-color: var(--accent-line); color: var(--text); }
+.kbd kbd {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 2px 5px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-soft);
+}
+
+.status-bar {
+  display: flex; align-items: center; gap: 14px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.12em;
+}
+.status-bar .st {
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.status-bar .dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 6px var(--success);
+}
+.status-bar .dot.warn { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+
+/* ═════════════════════ MAIN ═════════════════════ */
+.main {
+  grid-area: main;
+  overflow-y: auto;
+  position: relative;
+  padding: 28px 32px 48px;
+}
+
+.page-title {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.page-title h1 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+.page-title h1 .accent { color: var(--accent); }
+.page-title .sub {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.10em;
+}
+.page-tag {
+  display: inline-flex; align-items: center; gap: 6px;
+  margin-top: 8px;
+  padding: 4px 10px;
+  border: 1px solid var(--accent-line);
+  border-radius: 99px;
+  background: var(--accent-soft);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.12em;
+}
+
+/* Section title rule */
+.section-head {
+  display: flex; align-items: center; gap: 14px;
+  margin: 26px 0 14px;
+}
+.section-head .h {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+}
+.section-head .rule {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(to right, var(--border) 0%, transparent 100%);
+}
+.section-head .count {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--accent);
+  padding: 2px 8px;
+  border: 1px solid var(--accent-line);
+  border-radius: 99px;
+  background: var(--accent-soft);
+}
+
+/* ═════════════════════ AGENT GRID ═════════════════════ */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(248px, 1fr));
+  gap: 14px;
+}
+
+.agent-card {
+  position: relative;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, border-color 0.15s, box-shadow 0.15s;
+  box-shadow: var(--shadow-1);
+  overflow: hidden;
+}
+.agent-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent-line);
+  box-shadow: var(--shadow-2);
+}
+.agent-card.master {
+  background: linear-gradient(135deg, var(--card) 0%, var(--card-2) 100%);
+  border-color: var(--accent-line);
+}
+.agent-card.master::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at top right, rgba(0, 240, 255, 0.15), transparent 60%);
+  pointer-events: none;
+}
+.agent-card.master::after {
+  content: 'MASTER';
+  position: absolute; top: 12px; right: 12px;
+  font-family: var(--font-mono); font-size: 8px; font-weight: 600;
+  color: var(--accent); letter-spacing: 0.18em;
+  padding: 2px 6px;
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  border-radius: 3px;
+  z-index: 1;
+}
+.agent-card.running {
+  border-color: var(--success);
+  box-shadow: 0 0 0 1px var(--success), 0 0 24px rgba(100, 255, 218, 0.15);
+}
+.agent-card.completed {
+  border-color: var(--accent-line);
+}
+
+.agent-card .head {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 12px;
+  position: relative; z-index: 1;
+}
+.agent-avatar {
+  width: 36px; height: 36px; border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+}
+.agent-avatar svg { color: var(--accent); }
+.master .agent-avatar {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-color: var(--accent);
+}
+.master .agent-avatar svg { color: #00171f; }
+
+.agent-meta { display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; }
+.agent-name {
+  font-weight: 600; font-size: 13.5px; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.2;
+}
+.agent-role {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+
+.agent-card .body {
+  font-size: 11.5px;
+  color: var(--text-soft);
+  line-height: 1.5;
+  margin-bottom: 12px;
+  min-height: 50px;
+  position: relative; z-index: 1;
+}
+
+.agent-card .foot {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  position: relative; z-index: 1;
+}
+.pill {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.pill.model { color: var(--accent); border-color: var(--accent-line); background: var(--accent-soft); }
+.pill.status {
+  position: relative;
+}
+.pill.status .led {
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--muted);
+}
+.pill.status.idle .led { background: var(--muted); }
+.pill.status.running .led {
+  background: var(--success); box-shadow: 0 0 6px var(--success);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+.pill.status.completed .led { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+.pill.status.running { color: var(--success); border-color: rgba(100, 255, 218, 0.3); }
+.pill.status.completed { color: var(--accent); border-color: var(--accent-line); }
+
+/* Pulse halo on running agent cards */
+.agent-card.running::before {
+  content: '';
+  position: absolute; inset: -1px;
+  border-radius: var(--r-md);
+  background: radial-gradient(circle at 50% 50%, rgba(100, 255, 218, 0.08), transparent 70%);
+  animation: pulse 2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+/* ═════════════════════ RUN PROGRESS STRIP ═════════════════════ */
+.run-strip {
+  display: none;
+  margin: 18px 0 24px;
+  padding: 14px 18px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  position: relative;
+}
+.run-strip.visible { display: block; }
+.run-strip-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.run-strip-head .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.run-strip-head .meter {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--accent);
+}
+.steps {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 6px;
+}
+.step {
+  position: relative;
+  padding: 8px 10px 10px;
+  border-radius: var(--r-sm);
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  display: flex; flex-direction: column; gap: 4px;
+  transition: all 0.25s ease;
+}
+.step .n {
+  font-family: var(--font-mono); font-size: 9px; color: var(--muted);
+  letter-spacing: 0.1em;
+}
+.step .t {
+  font-size: 10.5px; color: var(--text-soft); line-height: 1.2;
+  font-weight: 500;
+}
+.step.done {
+  background: var(--accent-soft);
+  border-color: var(--accent-line);
+}
+.step.done .n { color: var(--accent); }
+.step.done .t { color: var(--text); }
+.step.active {
+  background: linear-gradient(135deg, rgba(0, 240, 255, 0.15), rgba(0, 184, 212, 0.08));
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.25);
+}
+.step.active .n { color: var(--accent); }
+.step.active .t { color: var(--text); }
+.step.active::after {
+  content: ''; position: absolute; left: 0; bottom: 0; height: 2px;
+  background: var(--accent); width: 100%;
+  animation: step-flow 1.6s linear infinite;
+}
+@keyframes step-flow {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* ═════════════════════ ABCD PURSUIT BOARD ═════════════════════ */
+.results-view { display: none; }
+.results-view.visible { display: block; animation: fadeUp 0.5s ease both; }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.portfolio-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin: 8px 0 18px;
+}
+.portfolio-cell {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+}
+.portfolio-cell::before {
+  content: ''; position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px;
+}
+.portfolio-cell.A::before { background: var(--success); box-shadow: 0 0 12px var(--success); }
+.portfolio-cell.B::before { background: var(--accent); box-shadow: 0 0 12px var(--accent); }
+.portfolio-cell.C::before { background: var(--gold); }
+.portfolio-cell.D::before { background: var(--muted); }
+.portfolio-cell .pc-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+}
+.portfolio-cell .pc-val {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 26px;
+  color: var(--text);
+  line-height: 1;
+}
+.portfolio-cell.A .pc-val { color: var(--success); }
+.portfolio-cell.B .pc-val { color: var(--accent); }
+.portfolio-cell.C .pc-val { color: var(--gold); }
+.portfolio-cell .pc-name {
+  font-size: 11px;
+  color: var(--text-soft);
+  margin-top: 2px;
+}
+.portfolio-cell .pc-range {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* Filter chip row */
+.filter-row {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+}
+.filter-label {
+  font-family: var(--font-mono); font-size: 9.5px;
+  color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase;
+  margin-right: 4px;
+}
+.chip {
+  font-family: var(--font-mono); font-size: 10px;
+  padding: 5px 11px;
+  border-radius: 99px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.12s;
+  letter-spacing: 0.05em;
+}
+.chip:hover { border-color: var(--accent-line); color: var(--text); }
+.chip.active {
+  background: var(--accent);
+  color: #00171f;
+  border-color: var(--accent);
+  font-weight: 600;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.4);
+}
+.chip-sep { width: 1px; height: 16px; background: var(--border); margin: 0 6px; }
+
+/* ABCD columns */
+.abcd-board {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+.abcd-col {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-md);
+  padding: 12px;
+  display: flex; flex-direction: column; gap: 8px;
+  min-height: 480px;
+}
+.abcd-col-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 4px 6px 10px;
+  border-bottom: 1px dashed var(--border-soft);
+  margin-bottom: 4px;
+}
+.abcd-col-head .title { display: flex; flex-direction: column; gap: 1px; }
+.abcd-col-head .class-letter {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 17px;
+  line-height: 1;
+}
+.abcd-col.A .class-letter { color: var(--success); }
+.abcd-col.B .class-letter { color: var(--accent); }
+.abcd-col.C .class-letter { color: var(--gold); }
+.abcd-col.D .class-letter { color: var(--muted); }
+.abcd-col-head .class-name {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--muted);
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+}
+.abcd-col-head .count-badge {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-soft);
+  padding: 2px 8px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+}
+
+.acc-chip {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 11px;
+  cursor: pointer;
+  transition: all 0.12s;
+  display: flex; flex-direction: column; gap: 5px;
+  position: relative;
+  animation: chipIn 0.4s ease both;
+}
+@keyframes chipIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.acc-chip:hover {
+  border-color: var(--accent);
+  transform: translateX(2px);
+  box-shadow: -2px 0 0 var(--accent), 0 4px 12px rgba(0, 240, 255, 0.15);
+}
+.acc-chip.selected {
+  border-color: var(--accent);
+  background: var(--card-2);
+  box-shadow: -2px 0 0 var(--accent), 0 0 18px rgba(0, 240, 255, 0.15);
+}
+.acc-chip-head {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px;
+}
+.acc-chip-name {
+  font-weight: 600; font-size: 12.5px; color: var(--text); line-height: 1.2;
+}
+.acc-chip-score {
+  font-family: var(--font-mono); font-size: 11px; color: var(--accent);
+  font-weight: 600;
+}
+.acc-chip-sector {
+  font-family: var(--font-mono); font-size: 9.5px; color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.acc-chip-trigger {
+  font-size: 10.5px; color: var(--text-soft); line-height: 1.35;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.acc-chip-foot {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  margin-top: 2px;
+}
+.route-tag {
+  font-family: var(--font-mono); font-size: 8.5px;
+  padding: 2px 6px; border-radius: 3px;
+  letter-spacing: 0.08em;
+}
+.route-tag.cio    { background: rgba(0, 184, 212, 0.15); color: var(--accent-2); border: 1px solid rgba(0, 184, 212, 0.3); }
+.route-tag.cfo    { background: rgba(255, 209, 102, 0.15); color: var(--gold); border: 1px solid rgba(255, 209, 102, 0.35); }
+.route-tag.caio   { background: rgba(255, 78, 205, 0.12); color: var(--magenta); border: 1px solid rgba(255, 78, 205, 0.35); }
+.route-tag.gig    { background: rgba(255, 107, 53, 0.15); color: var(--warning); border: 1px solid rgba(255, 107, 53, 0.35); }
+.route-tag.combo  { background: var(--accent-soft); color: var(--accent); border: 1px solid var(--accent-line); }
+.route-tag.excl   { background: rgba(93, 155, 184, 0.10); color: var(--muted); border: 1px solid rgba(93, 155, 184, 0.3); }
+.review-tag {
+  font-family: var(--font-mono); font-size: 8.5px;
+  padding: 2px 6px; border-radius: 3px; letter-spacing: 0.05em;
+  margin-left: auto;
+}
+.review-tag.rec   { background: var(--panel); color: var(--muted); border: 1px solid var(--border); }
+.review-tag.app   { background: rgba(100, 255, 218, 0.12); color: var(--success); border: 1px solid rgba(100, 255, 218, 0.3); }
+.review-tag.rev   { background: rgba(255, 209, 102, 0.12); color: var(--gold); border: 1px solid rgba(255, 209, 102, 0.3); }
+.review-tag.rej   { background: rgba(255, 82, 82, 0.12); color: var(--danger); border: 1px solid rgba(255, 82, 82, 0.3); }
+.review-tag.hold  { background: rgba(255, 107, 53, 0.12); color: var(--warning); border: 1px solid rgba(255, 107, 53, 0.3); }
+
+/* ═════════════════════ CHAT MODAL ═════════════════════ */
+.scrim {
+  position: fixed; inset: 0;
+  background: rgba(6, 11, 24, 0.7);
+  backdrop-filter: blur(6px);
+  z-index: 50;
+  display: none;
+  align-items: center; justify-content: center;
+  animation: fadeIn 0.2s ease both;
+}
+.scrim.visible { display: flex; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.chat-modal {
+  width: min(720px, 92vw);
+  max-height: 84vh;
+  background: var(--panel);
+  border: 1px solid var(--accent-line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-3), 0 0 60px rgba(0, 240, 255, 0.15);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+  position: relative;
+  animation: modalIn 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+@keyframes modalIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.chat-modal::before, .chat-modal::after {
+  content: ''; position: absolute; width: 18px; height: 18px;
+  border-color: var(--accent);
+}
+.chat-modal::before { top: 6px; left: 6px; border-top: 1px solid; border-left: 1px solid; }
+.chat-modal::after { bottom: 6px; right: 6px; border-bottom: 1px solid; border-right: 1px solid; }
+
+.chat-head {
+  padding: 18px 22px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 14px;
+}
+.chat-head .agent-avatar {
+  width: 42px; height: 42px;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  border-color: var(--accent);
+}
+.chat-head .agent-avatar svg { color: #00171f; width: 22px; height: 22px; }
+.chat-head .info { flex: 1; }
+.chat-head .info .name {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 18px; color: var(--text); line-height: 1.2;
+}
+.chat-head .info .spec {
+  font-size: 11.5px; color: var(--text-soft); margin-top: 3px; line-height: 1.4;
+}
+.chat-close {
+  width: 32px; height: 32px;
+  border-radius: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.chat-close:hover { color: var(--danger); border-color: var(--danger); }
+
+.chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 18px 22px;
+  display: flex; flex-direction: column; gap: 14px;
+  min-height: 220px;
+}
+.chat-suggestion {
+  background: var(--card);
+  border: 1px dashed var(--accent-line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.chat-suggestion:hover {
+  border-style: solid;
+  background: var(--card-2);
+  box-shadow: 0 0 18px rgba(0, 240, 255, 0.1);
+}
+.chat-suggestion .sg-label {
+  font-family: var(--font-mono);
+  font-size: 9px; color: var(--accent);
+  letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 6px;
+}
+.chat-suggestion .sg-body {
+  font-size: 12.5px; color: var(--text); line-height: 1.55;
+  font-style: italic;
+}
+.chat-suggestion .sg-foot {
+  display: flex; align-items: center; gap: 8px; margin-top: 8px;
+  font-family: var(--font-mono); font-size: 10px; color: var(--muted);
+}
+
+.msg {
+  display: flex; gap: 10px;
+  animation: msgIn 0.3s ease both;
+}
+@keyframes msgIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.msg .avatar-sm {
+  width: 26px; height: 26px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  font-family: var(--font-display);
+}
+.msg.user .avatar-sm {
+  background: var(--accent-soft);
+  border: 1px solid var(--accent-line);
+  color: var(--accent);
+}
+.msg.assistant .avatar-sm {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #00171f;
+}
+.msg .bubble {
+  flex: 1;
+  padding: 10px 14px;
+  border-radius: var(--r-md);
+  font-size: 12.5px;
+  line-height: 1.55;
+}
+.msg.user .bubble {
+  background: var(--card-2);
+  border: 1px solid var(--accent-line);
+  color: var(--text);
+}
+.msg.assistant .bubble {
+  background: var(--card);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.msg.assistant .bubble .agent-line {
+  display: flex; align-items: center; gap: 8px;
+  margin-bottom: 4px;
+}
+.msg.assistant .bubble .agent-line .tag {
+  font-family: var(--font-mono); font-size: 9px; color: var(--accent);
+  letter-spacing: 0.10em;
+  background: var(--accent-soft); border: 1px solid var(--accent-line);
+  padding: 1px 6px; border-radius: 3px;
+}
+.msg.assistant .bubble .narrate {
+  color: var(--text-soft); font-size: 12px;
+}
+.msg.assistant .bubble .narrate strong {
+  color: var(--accent); font-weight: 600;
+}
+.msg.assistant.system .bubble {
+  background: transparent;
+  border: 1px dashed var(--border);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+
+.typing-dots {
+  display: inline-flex; gap: 3px; margin-left: 8px;
+}
+.typing-dots span {
+  width: 4px; height: 4px; border-radius: 50%; background: var(--accent);
+  animation: typing 1.2s infinite ease-in-out;
+}
+.typing-dots span:nth-child(2) { animation-delay: 0.2s; }
+.typing-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes typing {
+  0%, 60%, 100% { opacity: 0.3; transform: translateY(0); }
+  30% { opacity: 1; transform: translateY(-3px); }
+}
+
+.chat-input {
+  border-top: 1px solid var(--border);
+  padding: 14px 18px;
+  background: var(--sidebar);
+  display: flex; gap: 10px; align-items: flex-end;
+}
+.chat-input textarea {
+  flex: 1;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 14px;
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.5;
+  resize: none;
+  min-height: 44px;
+  max-height: 140px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.chat-input textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.chat-input textarea::placeholder { color: var(--muted); }
+.btn-send {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #00171f;
+  border: none;
+  padding: 0 18px;
+  height: 44px;
+  border-radius: var(--r-sm);
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.06em;
+  display: flex; align-items: center; gap: 6px;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.3);
+  transition: transform 0.12s;
+}
+.btn-send:hover { transform: translateY(-1px); }
+.btn-send:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+/* ═════════════════════ INSPECTOR ═════════════════════ */
+.inspector {
+  grid-area: inspector;
+  background: var(--sidebar);
+  border-left: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.inspector-head {
+  padding: 18px 18px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.inspector-head .label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--muted);
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+}
+.inspector-tabs {
+  display: flex; gap: 6px;
+}
+.itab {
+  font-family: var(--font-mono); font-size: 10px;
+  padding: 4px 9px; border-radius: 4px;
+  background: transparent; color: var(--muted);
+  cursor: pointer; border: 1px solid transparent;
+  letter-spacing: 0.10em;
+}
+.itab.active { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-line); }
+.itab:hover { color: var(--text); }
+
+.inspector-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 18px 24px;
+}
+
+.empty-state {
+  text-align: center;
+  color: var(--muted);
+  padding: 48px 12px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.empty-state .ico { margin-bottom: 12px; opacity: 0.5; }
+.empty-state .ttl {
+  font-family: var(--font-display);
+  font-weight: 600; color: var(--text-soft);
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+
+/* Evidence list (during run) */
+.evidence-item {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  animation: msgIn 0.3s ease both;
+  cursor: default;
+}
+.evidence-item .e-head {
+  display: flex; align-items: center; gap: 6px; margin-bottom: 5px;
+}
+.evidence-item .e-type {
+  font-family: var(--font-mono); font-size: 8.5px;
+  padding: 1px 5px; border-radius: 3px;
+  background: var(--accent-soft); color: var(--accent);
+  border: 1px solid var(--accent-line);
+  letter-spacing: 0.08em;
+}
+.evidence-item .e-conf {
+  margin-left: auto;
+  font-family: var(--font-mono); font-size: 9px;
+}
+.e-conf.high { color: var(--success); }
+.e-conf.med { color: var(--gold); }
+.e-conf.low { color: var(--warning); }
+.evidence-item .e-title {
+  font-size: 11.5px; color: var(--text); line-height: 1.35;
+  margin-bottom: 3px;
+}
+.evidence-item .e-meta {
+  font-family: var(--font-mono); font-size: 9.5px; color: var(--muted);
+}
+
+/* Account brief */
+.brief {
+  display: flex; flex-direction: column; gap: 14px;
+}
+.brief-head {
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+}
+.brief-head .class-banner {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.brief-head .class-letter-big {
+  font-family: var(--font-display); font-weight: 800;
+  font-size: 34px; line-height: 1;
+  width: 50px; height: 50px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+}
+.brief-head .class-letter-big.A {
+  color: var(--success); background: rgba(100, 255, 218, 0.10);
+  border: 1px solid rgba(100, 255, 218, 0.4);
+  box-shadow: 0 0 18px rgba(100, 255, 218, 0.20);
+}
+.brief-head .class-letter-big.B { color: var(--accent); background: var(--accent-soft); border: 1px solid var(--accent-line); }
+.brief-head .class-letter-big.C { color: var(--gold); background: rgba(255, 209, 102, 0.10); border: 1px solid rgba(255, 209, 102, 0.35); }
+.brief-head .class-letter-big.D { color: var(--muted); background: var(--card); border: 1px solid var(--border); }
+
+.brief-head .ttl { flex: 1; }
+.brief-head .ttl h2 {
+  font-family: var(--font-display); font-weight: 700;
+  font-size: 18px; color: var(--text); line-height: 1.2;
+}
+.brief-head .ttl .sub {
+  font-family: var(--font-mono); font-size: 10px;
+  color: var(--muted); letter-spacing: 0.08em; margin-top: 3px;
+}
+.brief-head .score-row {
+  display: flex; gap: 14px; margin-top: 8px;
+  font-family: var(--font-mono); font-size: 11px;
+}
+.brief-head .score-row .sc-cell {
+  display: flex; flex-direction: column;
+}
+.brief-head .score-row .sc-val { color: var(--accent); font-size: 16px; font-weight: 600; }
+.brief-head .score-row .sc-lbl { color: var(--muted); font-size: 9px; letter-spacing: 0.10em; }
+
+.field {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.field .f-label {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--accent);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.field .f-value {
+  font-size: 12.5px; color: var(--text); line-height: 1.5;
+}
+.field .f-value .em { color: var(--text-soft); font-style: italic; }
+
+.score-bars {
+  display: flex; flex-direction: column; gap: 6px;
+}
+.sb-row { display: grid; grid-template-columns: 80px 1fr 38px; align-items: center; gap: 10px; }
+.sb-name { font-family: var(--font-mono); font-size: 9.5px; color: var(--muted); letter-spacing: 0.05em; }
+.sb-bar { height: 5px; background: var(--card); border-radius: 99px; overflow: hidden; }
+.sb-fill {
+  height: 100%; background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  border-radius: 99px; transition: width 0.6s ease;
+}
+.sb-val { font-family: var(--font-mono); font-size: 10px; color: var(--text); text-align: right; }
+
+.review-row {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 12px;
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--r-sm);
+}
+.review-row .r-label {
+  width: 100%;
+  font-family: var(--font-mono); font-size: 9.5px;
+  color: var(--muted); letter-spacing: 0.18em; text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.r-btn {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 5px 10px;
+  border-radius: 4px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition: all 0.12s;
+  letter-spacing: 0.06em;
+}
+.r-btn:hover { border-color: var(--accent-line); color: var(--text); }
+.r-btn.app.active { background: rgba(100, 255, 218, 0.15); color: var(--success); border-color: rgba(100, 255, 218, 0.4); }
+.r-btn.rev.active { background: rgba(255, 209, 102, 0.15); color: var(--gold); border-color: rgba(255, 209, 102, 0.4); }
+.r-btn.rej.active { background: rgba(255, 82, 82, 0.15); color: var(--danger); border-color: rgba(255, 82, 82, 0.4); }
+.r-btn.hold.active { background: rgba(255, 107, 53, 0.15); color: var(--warning); border-color: rgba(255, 107, 53, 0.4); }
+
+/* ═════════════════════ MISC ═════════════════════ */
+.btn-primary {
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-2) 100%);
+  color: #00171f;
+  border: none;
+  padding: 8px 16px;
+  border-radius: var(--r-sm);
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.3);
+  transition: transform 0.12s;
+  font-family: var(--font-ui);
+}
+.btn-primary:hover { transform: translateY(-1px); }
+
+.btn-ghost {
+  background: var(--card);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  padding: 8px 14px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.08em;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.btn-ghost:hover { border-color: var(--accent-line); color: var(--accent); }
+
+/* Six questions box (above agents grid) */
+.six-q {
+  background: linear-gradient(135deg, var(--panel) 0%, var(--card) 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  margin: 18px 0 24px;
+  position: relative;
+  overflow: hidden;
+}
+.six-q::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  opacity: 0.5;
+}
+.six-q .six-q-head {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+}
+.six-q .six-q-head .label {
+  font-family: var(--font-mono); font-size: 9.5px;
+  color: var(--accent); letter-spacing: 0.20em; text-transform: uppercase;
+}
+.six-q .qs {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px 18px;
+}
+.six-q .q {
+  font-size: 11.5px; color: var(--text-soft); line-height: 1.4;
+  display: flex; gap: 8px;
+}
+.six-q .q .num {
+  font-family: var(--font-mono); font-size: 10px; color: var(--accent);
+  letter-spacing: 0.05em; flex-shrink: 0;
+  width: 18px;
+}
+
+/* Toast for confirmations */
+.toast {
+  position: fixed;
+  bottom: 24px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--panel);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 10px 16px;
+  border-radius: var(--r-sm);
+  font-size: 12px;
+  font-family: var(--font-mono);
+  letter-spacing: 0.04em;
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.3);
+  opacity: 0; pointer-events: none;
+  transition: opacity 0.25s, transform 0.25s;
+  z-index: 100;
+}
+.toast.visible { opacity: 1; transform: translateX(-50%) translateY(-4px); }
+
+/* Footer credit */
+.foot-credit {
+  position: fixed;
+  right: 18px; bottom: 14px;
+  font-family: var(--font-mono); font-size: 9px;
+  color: var(--muted); letter-spacing: 0.12em;
+  z-index: 10;
+  pointer-events: none;
+}
+
+@media (max-width: 1280px) {
+  :root { --inspector-w: 320px; --sidebar-w: 200px; }
+  .six-q .qs { grid-template-columns: repeat(2, 1fr); }
+  .agent-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 88" width="34" height="38" aria-hidden="true">
+        <path d="M 12 76 L 12 16 L 60 76 L 60 12" fill="none" stroke="#00f0ff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 60 12 L 70 5" fill="none" stroke="#00f0ff" stroke-width="5" stroke-linecap="round"/>
+        <circle cx="12" cy="76" r="5" fill="#00f0ff"/>
+        <circle cx="12" cy="16" r="4" fill="#00f0ff"/>
+        <circle cx="60" cy="76" r="5" fill="#00f0ff"/>
+        <circle cx="70" cy="5" r="3.5" fill="#00f0ff"/>
+      </svg>
+      <div class="brand-text">
+        <div class="brand-wordmark"><span class="nova">NOVA</span><span class="tek">TEK</span></div>
+        <div class="brand-suffix">AGENTIC OS · v0.4</div>
+      </div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Workspace</div>
+      <div class="nav-item"><span class="nav-ico">▦</span> Dashboard</div>
+      <div class="nav-item active"><span class="nav-ico">◈</span> Agents <span class="nav-badge">10</span></div>
+      <div class="nav-item"><span class="nav-ico">▶</span> Chat</div>
+      <div class="nav-item"><span class="nav-ico">⌬</span> Swarm</div>
+      <div class="nav-item"><span class="nav-ico">▤</span> Tasks <span class="nav-badge">3</span></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">Intelligence</div>
+      <div class="nav-item"><span class="nav-ico">◯</span> Memory</div>
+      <div class="nav-item"><span class="nav-ico">⌖</span> Inspector</div>
+      <div class="nav-item"><span class="nav-ico">≡</span> Skills</div>
+      <div class="nav-item"><span class="nav-ico">⎈</span> MCP</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">System</div>
+      <div class="nav-item"><span class="nav-ico">⚙</span> Settings</div>
+      <div class="nav-item"><span class="nav-ico">⎙</span> Terminal</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="account-pill">
+        <div class="av">LM</div>
+        <div class="who">
+          <strong>Lungile Mginqi</strong>
+          <span>IQbusiness · Nexus</span>
+        </div>
+      </div>
+      <div class="sidebar-meta">D2A · REV 1.0 · 26.05.2026</div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════════ HEADER ═══════════════════ -->
+  <header class="header">
+    <div class="crumb">
+      <span class="live-dot"></span>
+      <span>D2A</span><span class="sep">/</span>
+      <span>Agents</span><span class="sep">/</span>
+      <span class="here">Target Account Intelligence</span>
+    </div>
+    <div class="status-bar" style="margin-left: 24px;">
+      <span class="st"><span class="dot"></span>GATEWAY</span>
+      <span class="st"><span class="dot"></span>CLAUDE OPUS 4.7</span>
+      <span class="st"><span class="dot warn"></span>POPIA</span>
+    </div>
+    <div class="kbd">
+      <kbd>⌘</kbd><kbd>K</kbd>
+      <span>Search · agents · skills · accounts</span>
+    </div>
+  </header>
+
+  <!-- ═══════════════════ MAIN ═══════════════════ -->
+  <main class="main">
+
+    <!-- Initial view: page title + six questions + agent grid -->
+    <div id="initialView">
+      <div class="page-title">
+        <div>
+          <h1>Target Account <span class="accent">Intelligence</span></h1>
+          <div class="page-tag">FOR IQBUSINESS · NEXUS · GIGANTIQ · MARKET ACTIVATION</div>
+        </div>
+        <div class="sub">10 AGENTS · 7 SCORING DIMS · 25 SAMPLE ACCOUNTS</div>
+      </div>
+
+      <!-- Six questions panel (from §3 of the brief) -->
+      <div class="six-q">
+        <div class="six-q-head">
+          <span class="label">AGENT PURPOSE · SIX QUESTIONS PER CANDIDATE COMPANY</span>
+        </div>
+        <div class="qs">
+          <div class="q"><span class="num">01</span><span>Does this company fit the <strong>ICP</strong>?</span></div>
+          <div class="q"><span class="num">02</span><span>Is there a visible <strong>executive trigger</strong>?</span></div>
+          <div class="q"><span class="num">03</span><span>Which <strong>offer family</strong> should lead?</span></div>
+          <div class="q"><span class="num">04</span><span>What is the first credible <strong>wedge</strong>?</span></div>
+          <div class="q"><span class="num">05</span><span>Who is the likely <strong>buyer / sponsor</strong>?</span></div>
+          <div class="q"><span class="num">06</span><span>What should we <strong>do next</strong>?</span></div>
+        </div>
+      </div>
+
+      <!-- Run-progress strip (hidden until run starts) -->
+      <div class="run-strip" id="runStrip">
+        <div class="run-strip-head">
+          <span class="label">SCENARIO RUN · WORKFLOW</span>
+          <span class="meter" id="runMeter">step 0 / 10 · 0%</span>
+        </div>
+        <div class="steps" id="stepsRow"></div>
+      </div>
+
+      <div class="section-head">
+        <span class="h">Agents</span>
+        <span class="rule"></span>
+        <span class="count">10 active</span>
+      </div>
+
+      <div class="agent-grid" id="agentGrid"></div>
+    </div>
+
+    <!-- Results view: appears after a successful run -->
+    <div class="results-view" id="resultsView">
+      <div class="page-title">
+        <div>
+          <h1>Pursuit <span class="accent">Board</span></h1>
+          <div class="page-tag">RUN #2026-05-26-001 · CAT B · TRIGGERS ≤24M · 25 ACCOUNTS · HUMAN APPROVAL PENDING</div>
+        </div>
+        <button class="btn-ghost" id="resetBtn">↺ RESET DEMO</button>
+      </div>
+
+      <div class="portfolio-bar">
+        <div class="portfolio-cell A">
+          <div class="pc-label">Class A · Hot Pursuit</div>
+          <div class="pc-val" id="pcA">0</div>
+          <div class="pc-name">Approve · enrich · activate</div>
+          <div class="pc-range">SCORE ≥ 80</div>
+        </div>
+        <div class="portfolio-cell B">
+          <div class="pc-label">Class B · Active Nurture</div>
+          <div class="pc-val" id="pcB">0</div>
+          <div class="pc-name">Validate route · prep wedge</div>
+          <div class="pc-range">SCORE 65 – 79</div>
+        </div>
+        <div class="portfolio-cell C">
+          <div class="pc-label">Class C · Watchlist</div>
+          <div class="pc-val" id="pcC">0</div>
+          <div class="pc-name">Track · market learning</div>
+          <div class="pc-range">SCORE 50 – 64</div>
+        </div>
+        <div class="portfolio-cell D">
+          <div class="pc-label">Class D · Defer / Exclude</div>
+          <div class="pc-val" id="pcD">0</div>
+          <div class="pc-name">Do not pursue · reason logged</div>
+          <div class="pc-range">SCORE &lt; 50</div>
+        </div>
+      </div>
+
+      <div class="filter-row" id="filterRow">
+        <span class="filter-label">SCENARIO</span>
+        <span class="chip active" data-f="route" data-v="all">All routes</span>
+        <span class="chip" data-f="route" data-v="cio">CIO/CTO-first</span>
+        <span class="chip" data-f="route" data-v="cfo">CFO-first</span>
+        <span class="chip" data-f="route" data-v="caio">CAIO-first</span>
+        <span class="chip" data-f="route" data-v="gig">Gigantiq</span>
+        <span class="chip-sep"></span>
+        <span class="chip active" data-f="band" data-v="all">All bands</span>
+        <span class="chip" data-f="band" data-v="A">Cat A · R50m–R750m</span>
+        <span class="chip" data-f="band" data-v="B">Cat B · R750m–R5bn</span>
+        <span class="chip" data-f="band" data-v="C">Cat C · &gt;R5bn</span>
+        <span class="chip-sep"></span>
+        <span class="chip active" data-f="trig" data-v="all">All triggers</span>
+        <span class="chip" data-f="trig" data-v="financial">Financial</span>
+        <span class="chip" data-f="trig" data-v="leadership">Leadership</span>
+        <span class="chip" data-f="trig" data-v="ai">AI</span>
+        <span class="chip" data-f="trig" data-v="tech">Tech</span>
+        <span class="chip" data-f="trig" data-v="ma">M&amp;A</span>
+      </div>
+
+      <div class="abcd-board" id="abcdBoard">
+        <div class="abcd-col A">
+          <div class="abcd-col-head">
+            <div class="title">
+              <span class="class-letter">A</span>
+              <span class="class-name">Hot Pursuit · ≥80</span>
+            </div>
+            <span class="count-badge" id="badgeA">0</span>
+          </div>
+          <div class="col-list" id="colA"></div>
+        </div>
+        <div class="abcd-col B">
+          <div class="abcd-col-head">
+            <div class="title">
+              <span class="class-letter">B</span>
+              <span class="class-name">Active Nurture · 65–79</span>
+            </div>
+            <span class="count-badge" id="badgeB">0</span>
+          </div>
+          <div class="col-list" id="colB"></div>
+        </div>
+        <div class="abcd-col C">
+          <div class="abcd-col-head">
+            <div class="title">
+              <span class="class-letter">C</span>
+              <span class="class-name">Watchlist · 50–64</span>
+            </div>
+            <span class="count-badge" id="badgeC">0</span>
+          </div>
+          <div class="col-list" id="colC"></div>
+        </div>
+        <div class="abcd-col D">
+          <div class="abcd-col-head">
+            <div class="title">
+              <span class="class-letter">D</span>
+              <span class="class-name">Defer / Exclude · &lt;50</span>
+            </div>
+            <span class="count-badge" id="badgeD">0</span>
+          </div>
+          <div class="col-list" id="colD"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- ═══════════════════ INSPECTOR ═══════════════════ -->
+  <aside class="inspector">
+    <div class="inspector-head">
+      <span class="label">INSPECTOR</span>
+      <div class="inspector-tabs">
+        <span class="itab active" id="tabEvidence">EVIDENCE</span>
+        <span class="itab" id="tabBrief">BRIEF</span>
+      </div>
+    </div>
+    <div class="inspector-body" id="inspectorBody">
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="ico">
+          <circle cx="11" cy="11" r="7"/>
+          <path d="m21 21-4.3-4.3"/>
+        </svg>
+        <div class="ttl">Evidence stream</div>
+        Click an agent to begin. Sources, citations and<br/>confidence ratings appear here in real time.
+      </div>
+    </div>
+  </aside>
+
+</div>
+
+<!-- ═══════════════════ CHAT MODAL ═══════════════════ -->
+<div class="scrim" id="scrim">
+  <div class="chat-modal" id="chatModal">
+    <div class="chat-head">
+      <div class="agent-avatar">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/>
+          <line x1="12" y1="22" x2="12" y2="15.5"/>
+          <polyline points="22 8.5 12 15.5 2 8.5"/>
+        </svg>
+      </div>
+      <div class="info">
+        <div class="name">Target Account Intelligence Agent</div>
+        <div class="spec">Master orchestrator. For every candidate company, answers six questions — ICP fit, why now, executive route, first wedge, likely buyer, next action — then classifies into A/B/C/D pursuit tiers.</div>
+      </div>
+      <button class="chat-close" id="chatClose" title="Close">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="chat-body" id="chatBody">
+      <div class="chat-suggestion" id="chatSuggestion">
+        <div class="sg-label">▸ SUGGESTED SCENARIO · APPENDIX B</div>
+        <div class="sg-body">"Find the Top 25 South African Category B companies for CIO/CTO-first, CFO-first or CAIO-first pursuit, excluding major blue-chip vanity accounts, with visible executive triggers in the last 24 months and a clear first wedge for IQbusiness / Nexus activation."</div>
+        <div class="sg-foot">CLICK TO INSERT · ⏎ TO RUN</div>
+      </div>
+    </div>
+    <div class="chat-input">
+      <textarea id="chatTextarea" placeholder="Ask the agent…   /scenario to load a saved run   /help for commands" rows="2"></textarea>
+      <button class="btn-send" id="btnSend">
+        SEND
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="foot-credit">DESIGNED BY NOVATEK LLC · FOR LUNGILE MGINQI · IQBUSINESS / NEXUS · 2026</div>
+
+<script>
+/* ════════════════════════════════════════════════════════════════════
+   D2A Agentic OS — interaction script
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ─── 1. Agent inventory (from D2A FRs) ─── */
+const AGENTS = [
+  { id: 'tai', name: 'Target Account Intelligence', role: 'Master orchestrator', desc: 'Answers the six questions per candidate company and packages the Top 25 / Next 75 / Watchlist / Exclusions.', model: 'OPUS', master: true, fr: 'FR-1…15', icon: 'polygon' },
+  { id: 'cub', name: 'Company Universe Builder', role: 'FR-1 · discovery', desc: 'Generates and refreshes the SA company universe with unique account IDs, sector and ownership type.', model: 'SONNET', icon: 'grid' },
+  { id: 'icp', name: 'ICP Band Classifier', role: 'FR-2 · classification', desc: 'Bands companies into Cat A (R50m–R750m), Cat B (R750m–R5bn) or Cat C (>R5bn) with revenue confidence.', model: 'HAIKU', icon: 'tier' },
+  { id: 'fre', name: 'Firmographic Enricher', role: 'FR-3 · enrichment', desc: 'Pulls revenue, employees, ownership, parent/subsidiary and complexity indicators via Apollo + public sources.', model: 'SONNET', icon: 'db' },
+  { id: 'trg', name: 'Trigger Detector', role: 'FR-4 · evidence', desc: 'Surfaces leadership change, financial pressure, tech pressure, governance, AI pressure, M&A or talent signals with source links.', model: 'SONNET', icon: 'pulse' },
+  { id: 'rou', name: 'Executive Issue Router', role: 'FR-5 · routing', desc: 'Routes each qualified account to CIO/CTO, CFO, CAIO, Gigantiq, combined or exclude based on the visible issue.', model: 'SONNET', icon: 'fork' },
+  { id: 'wdg', name: 'Wedge Recommender', role: 'FR-6 · strategy', desc: 'Recommends the first credible commercial wedge and explains why it fits now.', model: 'OPUS', icon: 'arrow' },
+  { id: 'sco', name: 'Scoring · ABCD Classifier', role: 'FR-7 · scoring', desc: '7-dimension weighted scoring (15·10·25·20·10·10·10) → ABCD class with hard A-class rules.', model: 'SONNET', icon: 'gauge' },
+  { id: 'aud', name: 'Evidence Auditor', role: 'FR-9 · audit', desc: 'Verifies major claims against source URL, date, source type and confidence. Flags unsupported claims.', model: 'OPUS', icon: 'shield' },
+  { id: 'pkg', name: 'Pursuit Packager', role: 'FR-10 · packaging', desc: 'Generates action-ready account briefs for A accounts and summary rows for B/C/D.', model: 'SONNET', icon: 'package' }
+];
+
+/* ─── 2. The 10-step workflow (from Table 8) ─── */
+const STEPS = [
+  { n: '01', t: 'Set scenario' },
+  { n: '02', t: 'Build universe' },
+  { n: '03', t: 'Enrich firmographics' },
+  { n: '04', t: 'Detect triggers' },
+  { n: '05', t: 'Classify · route' },
+  { n: '06', t: 'Score · classify' },
+  { n: '07', t: 'Enrich contacts' },
+  { n: '08', t: 'Package for action' },
+  { n: '09', t: 'Human review' },
+  { n: '10', t: 'Export / activate' }
+];
+
+/* ─── 3. Mock dataset (25 plausible SA companies) ─── */
+/* Scoring dims: ICP 15 · Complexity 10 · Trigger 25 · Route 20 · Buyer 10 · Wedge 10 · Evidence 10 */
+const ACCOUNTS = [
+  { id:'A001', name:'Mzansi Steel Holdings', sector:'Steel & metals', band:'B', revenue:'R3.4bn', employees:1800,
+    trigger:{ type:'financial', desc:'Profit warning issued Q1, working capital pressure flagged in interim results.', date:'2026-04-12', src:'sens.co.za/announcements/MSH-2026-04-12', conf:'high' },
+    route:'cfo', wedge:'Cash–Cost–Control conversation. Board finance governance reset.',
+    buyer:{ name:'Sipho Khumalo', role:'CFO', conf:'med' },
+    scores:{ icp:14, comp:9, trig:23, rou:18, buy:8, wedge:9, evid:9 },
+    score:90, abcd:'A', angle:'Profit warning + working capital strain = textbook CFO-first reset moment.', next:'Warm intro via Nedbank Corporate; schedule 30-min CFO diagnostic.', review:'rec' },
+
+  { id:'A002', name:'Karoo Logistics Group', sector:'Logistics & transport', band:'B', revenue:'R2.1bn', employees:2200,
+    trigger:{ type:'leadership', desc:'New CIO appointed March 2026 with mandate to modernise fleet telematics platform.', date:'2026-03-04', src:'businesslive.co.za/karoo-cio', conf:'high' },
+    route:'cio', wedge:'CIO/CTO 90-day diagnostic. Modernisation decision-discipline.',
+    buyer:{ name:'Thandi Mbeki', role:'CIO', conf:'high' },
+    scores:{ icp:13, comp:8, trig:24, rou:19, buy:9, wedge:9, evid:9 },
+    score:91, abcd:'A', angle:'Fresh CIO with platform mandate. First-90-days window closes June.', next:'Send AIEA one-pager + offer Co-Pilot diagnostic. Owner: Cobus.', review:'rec' },
+
+  { id:'A003', name:'Veld AgriTech Pty Ltd', sector:'AgriTech', band:'A', revenue:'R580m', employees:380,
+    trigger:{ type:'ai', desc:'Hiring "Head of AI" listed publicly; 3 AI-strategy roles posted in last 60 days.', date:'2026-04-20', src:'linkedin.com/jobs/veld-agritech-ai', conf:'med' },
+    route:'caio', wedge:'AI strategy reset. AI governance diagnostic. Opportunity portfolio.',
+    buyer:{ name:'Dr. Naledi Pretorius', role:'CDO (interim CAIO)', conf:'med' },
+    scores:{ icp:11, comp:7, trig:22, rou:19, buy:8, wedge:9, evid:8 },
+    score:84, abcd:'A', angle:'Many pilots, no scale. AI governance unclear. Classic CAIO entry point.', next:'Position CAIO playbook; mention Gigantiq for specialist AI engineers.', review:'rec' },
+
+  { id:'A004', name:'Witwatersrand Engineering', sector:'Industrial engineering', band:'B', revenue:'R4.2bn', employees:3100,
+    trigger:{ type:'tech', desc:'Public RFP issued for ERP modernisation; cyber breach disclosed Jan 2026.', date:'2026-02-08', src:'tenders.gov.za/witeng-erp-2026', conf:'high' },
+    route:'cio', wedge:'Value-Cost-Governance conversation. Cyber + ERP modernisation framing.',
+    buyer:{ name:'Marcus van Niekerk', role:'CTO', conf:'high' },
+    scores:{ icp:14, comp:10, trig:23, rou:18, buy:9, wedge:10, evid:9 },
+    score:93, abcd:'A', angle:'Cyber breach + ERP modernisation in same window. Board scrutiny high.', next:'Offer board-ready value/cost/governance briefing; lead with CIO route.', review:'rec' },
+
+  { id:'A005', name:'Bushveld Pharmaceuticals', sector:'Pharma & life sciences', band:'B', revenue:'R1.8bn', employees:920,
+    trigger:{ type:'ma', desc:'Announced acquisition of generics business from European parent; integration scope unclear.', date:'2026-05-02', src:'sens.co.za/announcements/BVP-acq', conf:'high' },
+    route:'combo', wedge:'Joint CIO/CFO acquisition-integration sprint. Combined value + cost lens.',
+    buyer:{ name:'Pieter Erasmus', role:'CEO', conf:'med' },
+    scores:{ icp:13, comp:9, trig:22, rou:17, buy:8, wedge:9, evid:9 },
+    score:87, abcd:'A', angle:'Post-deal integration always needs cost + tech lens. Combined route.', next:'Combined CIO/CFO briefing; offer 30-60-90 integration framework.', review:'rec' },
+
+  { id:'A006', name:'Sandton Capital Partners', sector:'Asset management', band:'C', revenue:'R8.4bn AUM', employees:240,
+    trigger:{ type:'governance', desc:'FSCA conduct review opened; new Chief Risk Officer appointed.', date:'2026-04-18', src:'fsca.co.za/publications/2026-04', conf:'high' },
+    route:'cfo', wedge:'Board finance governance conversation. Conduct + controls reset.',
+    buyer:{ name:'Dr. Anneke du Toit', role:'CFO', conf:'high' },
+    scores:{ icp:11, comp:10, trig:24, rou:18, buy:9, wedge:8, evid:10 },
+    score:90, abcd:'A', angle:'Regulator pressure + new CRO = controls overhaul window.', next:'Coordinate with Karl on conduct-review specialist intro.', review:'rec' },
+
+  { id:'A007', name:'iThemba Healthcare', sector:'Healthcare admin', band:'B', revenue:'R2.6bn', employees:1400,
+    trigger:{ type:'leadership', desc:'CEO change in Feb 2026; new strategic plan due Q3.', date:'2026-02-15', src:'cio.co.za/ithemba-leadership', conf:'high' },
+    route:'cio', wedge:'CIO/CTO diagnostic aligned to new CEO strategic plan.',
+    buyer:{ name:'Lerato Maseko', role:'CIO', conf:'med' },
+    scores:{ icp:13, comp:9, trig:21, rou:18, buy:7, wedge:9, evid:9 },
+    score:86, abcd:'A', angle:'New CEO = window. CIO needs to align tech roadmap to incoming strategy.', next:'Letter to CIO; reference CEO strategic plan timeline.', review:'rec' },
+
+  { id:'A008', name:'Umlilo Power Solutions', sector:'Renewable energy', band:'A', revenue:'R720m', employees:410,
+    trigger:{ type:'financial', desc:'R450m capital raise closed; expansion into West Africa announced.', date:'2026-03-22', src:'businesslive.co.za/umlilo-raise', conf:'high' },
+    route:'cfo', wedge:'CFO reset for scaled operations. Working capital + treasury framework.',
+    buyer:{ name:'Sibongile Nkomo', role:'CFO', conf:'med' },
+    scores:{ icp:11, comp:8, trig:22, rou:18, buy:8, wedge:9, evid:8 },
+    score:84, abcd:'A', angle:'Capital raise + cross-border expansion = treasury & controls retooling.', next:'Send CFO reset framework; suggest 45-min introductory call.', review:'rec' },
+
+  { id:'A009', name:'Inkululeko Telecoms', sector:'Telecoms', band:'C', revenue:'R6.2bn', employees:2800,
+    trigger:{ type:'ai', desc:'Board-level AI committee announced; tender for AI governance partner active.', date:'2026-05-10', src:'itweb.co.za/inkululeko-ai-board', conf:'high' },
+    route:'caio', wedge:'Board AI assurance conversation. AI governance partner positioning.',
+    buyer:{ name:'Mandla Sithole', role:'Chief Strategy & AI', conf:'high' },
+    scores:{ icp:11, comp:10, trig:24, rou:19, buy:9, wedge:9, evid:9 },
+    score:91, abcd:'A', angle:'Live tender window. CAIO-first with explicit AI governance lens.', next:'Submit AIEA framework as RFP response anchor.', review:'rec' },
+
+  /* ── B class (65–79) ── */
+  { id:'B010', name:'Highveld Manufacturing', sector:'Industrial manufacturing', band:'B', revenue:'R3.8bn', employees:2600,
+    trigger:{ type:'tech', desc:'Industry 4.0 pilot stalled; capex paper presented to board March 2026.', date:'2026-03-30', src:'engineering.co.za/highveld-i4', conf:'med' },
+    route:'cio', wedge:'Modernisation decision-discipline review.',
+    buyer:{ name:'Johan Bezuidenhout', role:'COO (acting IT)', conf:'low' },
+    scores:{ icp:13, comp:9, trig:18, rou:16, buy:5, wedge:8, evid:7 },
+    score:76, abcd:'B', angle:'Stalled pilot. Need to validate sponsor before pursuing.', next:'Research COO/CIO split; validate buyer route.', review:'rec' },
+
+  { id:'B011', name:'Drakensberg Mining Services', sector:'Mining services', band:'B', revenue:'R4.6bn', employees:3400,
+    trigger:{ type:'leadership', desc:'CFO retired Feb 2026; succession underway.', date:'2026-02-01', src:'miningweekly.com/drakensberg-cfo', conf:'med' },
+    route:'cfo', wedge:'CFO reset diagnostic for incoming CFO.',
+    buyer:{ name:'TBC · interim CFO', role:'Interim CFO', conf:'low' },
+    scores:{ icp:14, comp:10, trig:17, rou:17, buy:5, wedge:8, evid:7 },
+    score:78, abcd:'B', angle:'Wait for permanent CFO appointment to land before approach.', next:'Track appointment; relationship-build via Hosken network.', review:'rec' },
+
+  { id:'B012', name:'Boland Foods Limited', sector:'FMCG · food', band:'B', revenue:'R5.0bn', employees:4200,
+    trigger:{ type:'financial', desc:'Cost-of-goods pressure; margin compression flagged in trading update.', date:'2026-04-25', src:'sens.co.za/announcements/BFL-trading', conf:'med' },
+    route:'cfo', wedge:'Cash-Cost-Control conversation; supply-chain finance lens.',
+    buyer:{ name:'Marius Coetzee', role:'CFO', conf:'med' },
+    scores:{ icp:14, comp:9, trig:18, rou:17, buy:7, wedge:7, evid:7 },
+    score:79, abcd:'B', angle:'Margin pressure widely felt. Differentiation needs sector-specific angle.', next:'Build sector POV pack; second pass before A-classification.', review:'rec' },
+
+  { id:'B013', name:'Cape Coastal Distribution', sector:'Wholesale distribution', band:'A', revenue:'R680m', employees:520,
+    trigger:{ type:'tech', desc:'WMS replacement project announced; tender process not yet public.', date:'2026-03-15', src:'distrib-weekly.co.za/cape-coastal-wms', conf:'med' },
+    route:'cio', wedge:'Modernisation decision discipline; pre-tender advisory.',
+    buyer:{ name:'Yusuf Patel', role:'IT Director', conf:'med' },
+    scores:{ icp:11, comp:7, trig:18, rou:17, buy:7, wedge:8, evid:7 },
+    score:75, abcd:'B', angle:'Pre-tender = good but small company. Maybe better as Gigantiq specialist play.', next:'Validate revenue band; consider Gigantiq route.', review:'rec' },
+
+  { id:'B014', name:'Phakisa Property Group', sector:'Real estate', band:'B', revenue:'R2.9bn', employees:380,
+    trigger:{ type:'ma', desc:'Acquired smaller portfolio in Q4 2025; data integration challenges public.', date:'2026-01-18', src:'propertynews.co.za/phakisa-acq', conf:'med' },
+    route:'cio', wedge:'Post-acquisition data integration sprint.',
+    buyer:{ name:'Khanyisa Dlamini', role:'Head of Operations', conf:'low' },
+    scores:{ icp:12, comp:7, trig:17, rou:16, buy:6, wedge:8, evid:7 },
+    score:73, abcd:'B', angle:'Old trigger (Jan). Validate it\'s still active.', next:'Quick check: is integration still in flight? If yes, escalate to A.', review:'rec' },
+
+  { id:'B015', name:'Letaba Beverages', sector:'Beverages', band:'B', revenue:'R1.4bn', employees:760,
+    trigger:{ type:'leadership', desc:'New CIO hire announced; previously Sasol Group IT.', date:'2026-04-08', src:'itweb.co.za/letaba-cio', conf:'high' },
+    route:'cio', wedge:'90-day diagnostic. CIO transition support.',
+    buyer:{ name:'Andries van der Merwe', role:'CIO', conf:'high' },
+    scores:{ icp:12, comp:8, trig:21, rou:18, buy:8, wedge:7, evid:8 },
+    score:82, abcd:'A', angle:'Ex-Sasol CIO = warm path via Lungile\'s network.', next:'Personal intro via Lungile. Position 90-day diagnostic.', review:'rec' },
+
+  { id:'B016', name:'eMzansi Digital Services', sector:'IT services', band:'A', revenue:'R420m', employees:280,
+    trigger:{ type:'financial', desc:'Series B round closed at R280m; expanding to government sector.', date:'2026-03-01', src:'venturebeat.com/emzansi-b', conf:'high' },
+    route:'gig', wedge:'Specialist sprint capacity. Hard-role search.',
+    buyer:{ name:'Dineo Mokoena', role:'COO', conf:'med' },
+    scores:{ icp:9, comp:6, trig:20, rou:16, buy:7, wedge:7, evid:8 },
+    score:73, abcd:'B', angle:'Too small for executive-support offer. Pure Gigantiq specialist play.', next:'Route to Gigantiq team; not for fractional services.', review:'rec' },
+
+  { id:'B017', name:'Iziko Financial Group', sector:'Financial services', band:'C', revenue:'R7.8bn', employees:1900,
+    trigger:{ type:'governance', desc:'Audit committee chair stepped down; replacement search public.', date:'2026-04-05', src:'iol.co.za/iziko-audit-chair', conf:'med' },
+    route:'cfo', wedge:'Board finance governance conversation.',
+    buyer:{ name:'Prof. Sarah Mokoena', role:'Audit Chair (incoming)', conf:'low' },
+    scores:{ icp:11, comp:9, trig:18, rou:17, buy:5, wedge:7, evid:7 },
+    score:74, abcd:'B', angle:'Cat C — board-led path. Wait for new audit chair seating.', next:'Relationship-build; track new chair appointment.', review:'rec' },
+
+  { id:'B018', name:'Tugela Pharmaceuticals', sector:'Pharma', band:'B', revenue:'R3.1bn', employees:1100,
+    trigger:{ type:'tech', desc:'SAP S/4HANA migration delayed; second extension announced.', date:'2026-04-30', src:'tendersbulletin.co.za/tugela-sap', conf:'med' },
+    route:'cio', wedge:'CIO/CTO diagnostic. Migration recovery framing.',
+    buyer:{ name:'Jacques Pretorius', role:'CIO', conf:'med' },
+    scores:{ icp:13, comp:9, trig:18, rou:17, buy:7, wedge:8, evid:7 },
+    score:79, abcd:'B', angle:'Delayed migration = political. Need careful entry.', next:'Validate via former Sasol contacts; soft intro preferred.', review:'rec' },
+
+  /* ── C class (50–64) ── */
+  { id:'C019', name:'Garden Route Hospitality', sector:'Hospitality', band:'A', revenue:'R310m', employees:880,
+    trigger:{ type:'leadership', desc:'New owner-operator group, taking control April 2026.', date:'2026-04-15', src:'tourismupdate.co.za/garden-route', conf:'low' },
+    route:'cio', wedge:'Light executive-support framing.',
+    buyer:{ name:'Unknown', role:'TBD', conf:'low' },
+    scores:{ icp:8, comp:5, trig:15, rou:12, buy:4, wedge:6, evid:5 },
+    score:55, abcd:'C', angle:'Too small + no clear buyer yet. Watchlist.', next:'Periodic check-in. No enrichment credits.', review:'rec' },
+
+  { id:'C020', name:'Bushveld Logistics', sector:'Logistics', band:'A', revenue:'R260m', employees:340,
+    trigger:{ type:'tech', desc:'Telematics pilot launched; outcomes not yet public.', date:'2026-02-20', src:'logistics-news.co.za/bushveld-pilot', conf:'low' },
+    route:'gig', wedge:'Specialist capacity if needed.',
+    buyer:{ name:'Unknown', role:'TBD', conf:'low' },
+    scores:{ icp:7, comp:5, trig:14, rou:11, buy:4, wedge:6, evid:5 },
+    score:52, abcd:'C', angle:'Strategic learning value only.', next:'Track via market scan; no active pursuit.', review:'rec' },
+
+  { id:'C021', name:'Kalahari Energy Holdings', sector:'Energy', band:'B', revenue:'R2.4bn', employees:1200,
+    trigger:{ type:'governance', desc:'CSI policy update circulated to industry; nothing material.', date:'2026-03-12', src:'energy-sa.co.za/kalahari-csi', conf:'low' },
+    route:'excl', wedge:'No clear wedge today.',
+    buyer:{ name:'—', role:'—', conf:'low' },
+    scores:{ icp:12, comp:8, trig:10, rou:8, buy:5, wedge:5, evid:6 },
+    score:54, abcd:'C', angle:'No live trigger. ICP fits but no urgency.', next:'Watchlist. Re-evaluate Q4.', review:'rec' },
+
+  { id:'C022', name:'Khanyisa Renewable Energy', sector:'Renewable energy', band:'A', revenue:'R190m', employees:120,
+    trigger:{ type:'financial', desc:'Pre-Series B convertible note announced.', date:'2026-05-08', src:'venture-sa.com/khanyisa-cn', conf:'med' },
+    route:'gig', wedge:'Specialist financial controller search.',
+    buyer:{ name:'Founders', role:'Co-CEOs', conf:'low' },
+    scores:{ icp:6, comp:4, trig:18, rou:11, buy:5, wedge:6, evid:7 },
+    score:57, abcd:'C', angle:'Too early-stage. Gigantiq specialist only.', next:'Hand to Gigantiq talent team; no fractional play.', review:'rec' },
+
+  /* ── D class (<50) ── */
+  { id:'D023', name:'Mosaiek Construction', sector:'Construction', band:'B', revenue:'R1.7bn', employees:2100,
+    trigger:{ type:'financial', desc:'Business rescue speculation in trade press.', date:'2026-04-22', src:'engineering-news.co.za/mosaiek-br', conf:'low' },
+    route:'excl', wedge:'—',
+    buyer:{ name:'—', role:'—', conf:'low' },
+    scores:{ icp:11, comp:8, trig:8, rou:4, buy:3, wedge:3, evid:4 },
+    score:41, abcd:'D', angle:'Distress signals + low confidence = exclude.', next:'Do not pursue. Reason code: financial distress.', review:'rec' },
+
+  { id:'D024', name:'Zambezi Logistics SA', sector:'Logistics', band:'A', revenue:'R110m', employees:180,
+    trigger:{ type:'tech', desc:'No clear trigger; small-fleet operator.', date:'—', src:'—', conf:'low' },
+    route:'excl', wedge:'—',
+    buyer:{ name:'—', role:'—', conf:'low' },
+    scores:{ icp:5, comp:3, trig:5, rou:4, buy:3, wedge:3, evid:4 },
+    score:27, abcd:'D', angle:'Below revenue floor; no trigger.', next:'Do not pursue. Reason code: ICP-out.', review:'rec' },
+
+  { id:'D025', name:'Ubuntu Healthcare Partners', sector:'Healthcare', band:'A', revenue:'R85m', employees:240,
+    trigger:{ type:'leadership', desc:'GP-network consolidation; no public exec-level pressure.', date:'2026-01-10', src:'—', conf:'low' },
+    route:'excl', wedge:'—',
+    buyer:{ name:'—', role:'—', conf:'low' },
+    scores:{ icp:4, comp:3, trig:6, rou:4, buy:3, wedge:3, evid:3 },
+    score:26, abcd:'D', angle:'Below floor + GP-clinic model = poor fit.', next:'Do not pursue. Reason code: model-mismatch.', review:'rec' }
+];
+
+/* Scoring dim labels (for brief view) */
+const SCORE_DIMS = [
+  { key:'icp',   label:'ICP fit',         max:15 },
+  { key:'comp',  label:'Complexity',      max:10 },
+  { key:'trig',  label:'Trigger',         max:25 },
+  { key:'rou',   label:'Route fit',       max:20 },
+  { key:'buy',   label:'Buyer access',    max:10 },
+  { key:'wedge', label:'Wedge clarity',   max:10 },
+  { key:'evid',  label:'Evidence',        max:10 }
+];
+
+/* Reviewer status map */
+const REVIEW_TAGS = { rec:'Agent rec.', app:'Approved', rev:'Revised', rej:'Rejected', hold:'Hold' };
+
+/* ─── 4. State ─── */
+const state = {
+  running: false,
+  ran: false,
+  filters: { route:'all', band:'all', trig:'all' },
+  selectedAccount: null,
+  inspectorMode: 'evidence', // 'evidence' | 'brief'
+  evidence: [] // accumulated during run
+};
+
+/* ─── 5. SVG icons for agent avatars ─── */
+const ICONS = {
+  polygon: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 22 8.5 22 15.5 12 22 2 15.5 2 8.5 12 2"/><line x1="12" y1="22" x2="12" y2="15.5"/><polyline points="22 8.5 12 15.5 2 8.5"/></svg>',
+  grid:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>',
+  tier:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="4" y1="6"  x2="20" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg>',
+  db:      '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v6c0 1.7 4 3 9 3s9-1.3 9-3V5"/><path d="M3 11v6c0 1.7 4 3 9 3s9-1.3 9-3v-6"/></svg>',
+  pulse:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 12 7 12 10 5 14 19 17 12 21 12"/></svg>',
+  fork:    '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="6" r="2"/><circle cx="18" cy="6" r="2"/><circle cx="12" cy="18" r="2"/><path d="M6 8c0 4 6 4 6 8M18 8c0 4-6 4-6 8"/></svg>',
+  arrow:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  gauge:   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 14a9 9 0 0 1 18 0"/><line x1="12" y1="14" x2="16" y2="9"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/></svg>',
+  shield:  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2 4 5v6c0 5 3.5 9.5 8 11 4.5-1.5 8-6 8-11V5l-8-3z"/><polyline points="9 12 11 14 15 10"/></svg>',
+  package: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21 16-9 5-9-5V8l9-5 9 5v8z"/><polyline points="3 8 12 13 21 8"/><line x1="12" y1="13" x2="12" y2="21"/></svg>'
+};
+
+/* ─── 6. Render: agent grid ─── */
+function renderAgents() {
+  const grid = document.getElementById('agentGrid');
+  grid.innerHTML = AGENTS.map(a => `
+    <div class="agent-card ${a.master ? 'master' : ''}" data-id="${a.id}">
+      <div class="head">
+        <div class="agent-avatar">${ICONS[a.icon] || ICONS.polygon}</div>
+        <div class="agent-meta">
+          <div class="agent-name">${a.name}</div>
+          <div class="agent-role">${a.role}</div>
+        </div>
+      </div>
+      <div class="body">${a.desc}</div>
+      <div class="foot">
+        <span class="pill model">${a.model}</span>
+        <span class="pill status idle" data-status><span class="led"></span><span class="lbl">IDLE</span></span>
+      </div>
+    </div>
+  `).join('');
+  // Wire master click
+  grid.querySelectorAll('.agent-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const id = card.dataset.id;
+      if (id === 'tai') openChat();
+      else toast(`${AGENTS.find(x=>x.id===id).name} is a specialist. Run the master to invoke it.`);
+    });
+  });
+}
+
+/* ─── 7. Render: workflow steps ─── */
+function renderSteps() {
+  document.getElementById('stepsRow').innerHTML = STEPS.map(s =>
+    `<div class="step" data-n="${s.n}"><div class="n">${s.n}</div><div class="t">${s.t}</div></div>`
+  ).join('');
+}
+
+/* ─── 8. Chat modal ─── */
+const scrim = document.getElementById('scrim');
+function openChat() {
+  scrim.classList.add('visible');
+  document.getElementById('chatTextarea').focus();
+}
+function closeChat() {
+  scrim.classList.remove('visible');
+}
+document.getElementById('chatClose').addEventListener('click', closeChat);
+scrim.addEventListener('click', e => { if (e.target === scrim) closeChat(); });
+
+const ta = document.getElementById('chatTextarea');
+const sugg = document.getElementById('chatSuggestion');
+const SCENARIO_PROMPT = `Find the Top 25 South African Category B companies for CIO/CTO-first, CFO-first or CAIO-first pursuit, excluding major blue-chip vanity accounts, with visible executive triggers in the last 24 months and a clear first wedge for IQbusiness / Nexus activation.`;
+
+sugg.addEventListener('click', () => {
+  ta.value = SCENARIO_PROMPT;
+  ta.focus();
+});
+ta.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submitChat(); }
+});
+document.getElementById('btnSend').addEventListener('click', submitChat);
+
+function submitChat() {
+  const text = ta.value.trim();
+  if (!text || state.running) return;
+  // Add user message
+  const body = document.getElementById('chatBody');
+  sugg.style.display = 'none';
+  body.appendChild(msgEl('user', escapeHtml(text)));
+  ta.value = '';
+  startRun();
+}
+
+function msgEl(kind, html, system=false) {
+  const div = document.createElement('div');
+  div.className = `msg ${kind}${system?' system':''}`;
+  const av = (kind === 'user') ? 'LM' : 'TAI';
+  div.innerHTML = `
+    <div class="avatar-sm">${av}</div>
+    <div class="bubble">${html}</div>`;
+  return div;
+}
+
+function escapeHtml(s) { return s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+/* ─── 9. The orchestrated run ─── */
+const RUN_SCRIPT = [
+  { step:0, agent:null, narrate:`<div class="agent-line"><span class="tag">PARSED</span><span style="font-family:var(--font-mono);font-size:10px;color:var(--muted)">scenario · Cat B · routes [CIO,CFO,CAIO] · trigger window 24m · exclude blue-chips</span></div><div class="narrate">Scenario locked. Spinning up <strong>9 specialist agents</strong>. Run ID <strong>2026-05-26-001</strong>.</div>` },
+  { step:1, agent:'cub', narrate:`<div class="agent-line"><span class="tag">▣ UNIVERSE BUILDER</span></div><div class="narrate">Built candidate universe of <strong>418 SA companies</strong> across 12 sectors. Filtered to 287 inside ICP envelope.</div>`,
+    evidence: [
+      { type:'PUBLIC', title:'JSE listed-company index · main board', meta:'jse.co.za · 2026-05-26 · directory', conf:'high' },
+      { type:'PUBLIC', title:'CIPC company registry · active SA entities', meta:'cipc.co.za · 2026-05-26 · registry', conf:'high' }
+    ] },
+  { step:2, agent:'fre', narrate:`<div class="agent-line"><span class="tag">▣ FIRMOGRAPHIC ENRICHER</span></div><div class="narrate">Enriched <strong>287 companies</strong>: revenue band, employee count, ownership, parent/subsidiary. Apollo + LinkedIn Sales Nav.</div>`,
+    evidence: [
+      { type:'APOLLO', title:'Firmographics · 287 records · revenue + employees', meta:'apollo.io · 2026-05-26 · enrichment', conf:'high' }
+    ] },
+  { step:3, agent:'trg', narrate:`<div class="agent-line"><span class="tag">▣ TRIGGER DETECTOR</span></div><div class="narrate">Surfaced <strong>67 trigger events</strong> in last 24m: 18 financial · 14 leadership · 11 tech · 9 governance · 8 AI · 4 M&amp;A · 3 talent.</div>`,
+    evidence: [
+      { type:'SENS', title:'Mzansi Steel · profit warning · Q1 2026', meta:'sens.co.za · 2026-04-12 · regulatory', conf:'high' },
+      { type:'NEWS', title:'Karoo Logistics · new CIO appointment', meta:'businesslive.co.za · 2026-03-04 · press', conf:'high' },
+      { type:'NEWS', title:'Inkululeko Telecoms · board-level AI committee announced', meta:'itweb.co.za · 2026-05-10 · press', conf:'high' }
+    ] },
+  { step:4, agent:'rou', narrate:`<div class="agent-line"><span class="tag">▣ EXECUTIVE ISSUE ROUTER</span></div><div class="narrate">Routed <strong>85 qualified accounts</strong>: <span style="color:var(--gold)">38 → CFO-first</span> · <span style="color:var(--accent-2)">24 → CIO/CTO-first</span> · <span style="color:var(--magenta)">12 → CAIO-first</span> · 8 combined · 3 Gigantiq.</div>` },
+  { step:5, agent:'sco', narrate:`<div class="agent-line"><span class="tag">▣ SCORING · ABCD CLASSIFIER</span></div><div class="narrate">Scored 85 accounts on 7 dimensions (15·10·25·20·10·10·10). Hard A-class rule enforced — trigger + buyer + wedge + evidence ≥ med.</div>` },
+  { step:6, agent:'wdg', narrate:`<div class="agent-line"><span class="tag">▣ WEDGE RECOMMENDER</span></div><div class="narrate">Generated first-wedge recommendations for all A and B accounts. Cross-referenced against Cobus's offer library.</div>` },
+  { step:7, agent:'aud', narrate:`<div class="agent-line"><span class="tag">▣ EVIDENCE AUDITOR</span></div><div class="narrate">Audited <strong>247 claims</strong> against source URLs. 12 flagged as low-confidence and prevented from driving A-class scoring.</div>`,
+    evidence: [
+      { type:'AUDIT', title:'12 claims downgraded · sources >180 days or unverified', meta:'auditor · 2026-05-26 · log', conf:'med' }
+    ] },
+  { step:8, agent:'pkg', narrate:`<div class="agent-line"><span class="tag">▣ PURSUIT PACKAGER</span></div><div class="narrate">Packaged <strong>9 Class-A account briefs</strong>. <strong>9 B</strong> · <strong>4 C</strong> · <strong>3 D</strong>. Routed to inspector.</div>` },
+  { step:9, agent:null, narrate:`<div class="agent-line"><span class="tag">✓ HUMAN REVIEW PENDING</span></div><div class="narrate">Top 25 ready. Awaiting your approval before contact enrichment proceeds. Click any A-rated account to open its brief.</div>` }
+];
+
+let runTimer = null;
+async function startRun() {
+  if (state.running) return;
+  state.running = true;
+  state.evidence = [];
+
+  // Show progress strip
+  document.getElementById('runStrip').classList.add('visible');
+  // Clear all step states
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active','done'));
+  // Mark all agent cards as idle (in case re-running)
+  document.querySelectorAll('.agent-card .pill.status').forEach(p => {
+    p.className = 'pill status idle'; p.querySelector('.lbl').textContent = 'IDLE';
+    p.querySelector('.led').className = 'led';
+  });
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('running','completed'));
+
+  // Switch inspector to evidence mode
+  setInspectorMode('evidence');
+  renderEvidence();
+
+  // Iterate through script
+  for (let i = 0; i < RUN_SCRIPT.length; i++) {
+    const phase = RUN_SCRIPT[i];
+    setActiveStep(phase.step);
+    updateMeter(phase.step);
+
+    if (phase.agent) {
+      markAgent(phase.agent, 'running');
+    }
+
+    // Add chat bubble
+    const body = document.getElementById('chatBody');
+    body.appendChild(msgEl('assistant', phase.narrate));
+    body.scrollTop = body.scrollHeight;
+
+    if (phase.evidence) {
+      phase.evidence.forEach(e => state.evidence.push(e));
+      renderEvidence();
+    }
+
+    await sleep(1700);
+
+    if (phase.agent) markAgent(phase.agent, 'completed');
+    markStepDone(phase.step);
+  }
+
+  // Final step
+  setActiveStep(9, true);
+  updateMeter(10);
+
+  // Master agent: completed
+  markAgent('tai', 'completed');
+
+  // Reveal results
+  await sleep(400);
+  closeChat();
+  showResults();
+
+  state.ran = true;
+  state.running = false;
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function setActiveStep(n, last=false) {
+  document.querySelectorAll('.step').forEach((el, idx) => {
+    el.classList.remove('active');
+    if (idx === n && !last) el.classList.add('active');
+  });
+}
+function markStepDone(n) {
+  const el = document.querySelectorAll('.step')[n];
+  if (el) { el.classList.remove('active'); el.classList.add('done'); }
+}
+function updateMeter(stepIdx) {
+  const pct = Math.min(100, Math.round((stepIdx / 10) * 100));
+  document.getElementById('runMeter').textContent = `step ${stepIdx} / 10 · ${pct}%`;
+}
+function markAgent(id, status) {
+  const card = document.querySelector(`.agent-card[data-id="${id}"]`);
+  if (!card) return;
+  card.classList.remove('running','completed');
+  if (status === 'running') card.classList.add('running');
+  if (status === 'completed') card.classList.add('completed');
+  const pill = card.querySelector('.pill.status');
+  pill.className = `pill status ${status}`;
+  pill.querySelector('.lbl').textContent = status.toUpperCase();
+  pill.querySelector('.led').className = 'led';
+}
+
+/* ─── 10. Evidence rendering ─── */
+function renderEvidence() {
+  const body = document.getElementById('inspectorBody');
+  if (state.inspectorMode !== 'evidence') return;
+  if (state.evidence.length === 0) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="ico">
+          <circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>
+        </svg>
+        <div class="ttl">Evidence stream</div>
+        Click an agent to begin. Sources, citations and<br/>confidence ratings appear here in real time.
+      </div>`;
+    return;
+  }
+  body.innerHTML = state.evidence.map(e => `
+    <div class="evidence-item">
+      <div class="e-head">
+        <span class="e-type">${e.type}</span>
+        <span class="e-conf ${e.conf}">${e.conf === 'high' ? '● HIGH' : e.conf === 'med' ? '● MED' : '● LOW'}</span>
+      </div>
+      <div class="e-title">${e.title}</div>
+      <div class="e-meta">${e.meta}</div>
+    </div>
+  `).join('');
+}
+
+/* ─── 11. Inspector tabs ─── */
+function setInspectorMode(mode) {
+  state.inspectorMode = mode;
+  document.getElementById('tabEvidence').classList.toggle('active', mode === 'evidence');
+  document.getElementById('tabBrief').classList.toggle('active', mode === 'brief');
+  if (mode === 'evidence') renderEvidence();
+  else renderBrief();
+}
+document.getElementById('tabEvidence').addEventListener('click', () => setInspectorMode('evidence'));
+document.getElementById('tabBrief').addEventListener('click', () => {
+  if (!state.selectedAccount) {
+    toast('Click an account on the Pursuit Board to load its brief.');
+    return;
+  }
+  setInspectorMode('brief');
+});
+
+/* ─── 12. Results / ABCD board ─── */
+function showResults() {
+  document.getElementById('resultsView').classList.add('visible');
+  // Scroll results into view
+  document.getElementById('resultsView').scrollIntoView({ behavior:'smooth', block:'start' });
+  renderBoard();
+}
+
+function visibleAccounts() {
+  const f = state.filters;
+  return ACCOUNTS.filter(a => {
+    if (f.route !== 'all' && a.route !== f.route) return false;
+    if (f.band  !== 'all' && a.band  !== f.band) return false;
+    if (f.trig  !== 'all' && a.trigger.type !== f.trig) return false;
+    return true;
+  });
+}
+
+function renderBoard() {
+  const visible = visibleAccounts();
+  const buckets = { A:[], B:[], C:[], D:[] };
+  visible.forEach(a => buckets[a.abcd].push(a));
+
+  ['A','B','C','D'].forEach(k => {
+    document.getElementById('pc'+k).textContent = buckets[k].length;
+    document.getElementById('badge'+k).textContent = buckets[k].length;
+    const col = document.getElementById('col'+k);
+    if (buckets[k].length === 0) {
+      col.innerHTML = `<div style="color:var(--muted);font-family:var(--font-mono);font-size:10px;padding:18px 6px;text-align:center;letter-spacing:0.10em;opacity:0.5;">— EMPTY —</div>`;
+      return;
+    }
+    // sort by score desc
+    buckets[k].sort((a,b) => b.score - a.score);
+    col.innerHTML = buckets[k].map(a => `
+      <div class="acc-chip ${state.selectedAccount === a.id ? 'selected' : ''}" data-id="${a.id}">
+        <div class="acc-chip-head">
+          <div class="acc-chip-name">${a.name}</div>
+          <div class="acc-chip-score">${a.score}</div>
+        </div>
+        <div class="acc-chip-sector">${a.sector.toUpperCase()} · ${a.band} · ${a.revenue}</div>
+        <div class="acc-chip-trigger">${a.trigger.desc}</div>
+        <div class="acc-chip-foot">
+          <span class="route-tag ${a.route}">${routeLabel(a.route)}</span>
+          <span class="review-tag ${a.review}">${REVIEW_TAGS[a.review]}</span>
+        </div>
+      </div>
+    `).join('');
+  });
+
+  // Wire chip clicks
+  document.querySelectorAll('.acc-chip').forEach(c => {
+    c.addEventListener('click', () => {
+      state.selectedAccount = c.dataset.id;
+      renderBoard();
+      setInspectorMode('brief');
+    });
+  });
+}
+
+function routeLabel(r) {
+  return { cio:'CIO/CTO', cfo:'CFO', caio:'CAIO', gig:'GIGANTIQ', combo:'COMBINED', excl:'EXCLUDE' }[r] || r.toUpperCase();
+}
+
+/* ─── 13. Filters ─── */
+document.getElementById('filterRow').addEventListener('click', e => {
+  const chip = e.target.closest('.chip');
+  if (!chip) return;
+  const f = chip.dataset.f, v = chip.dataset.v;
+  state.filters[f] = v;
+  // De-activate sibling chips for this filter, activate the clicked one
+  document.querySelectorAll(`.chip[data-f="${f}"]`).forEach(c => {
+    c.classList.toggle('active', c.dataset.v === v);
+  });
+  renderBoard();
+});
+
+/* ─── 14. Brief view ─── */
+function renderBrief() {
+  const body = document.getElementById('inspectorBody');
+  if (!state.selectedAccount) {
+    body.innerHTML = `
+      <div class="empty-state">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" class="ico">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+          <line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/>
+        </svg>
+        <div class="ttl">No account selected</div>
+        Click any account on the Pursuit Board to load<br/>its briefing pack here.
+      </div>`;
+    return;
+  }
+  const a = ACCOUNTS.find(x => x.id === state.selectedAccount);
+  body.innerHTML = `
+    <div class="brief">
+      <div class="brief-head">
+        <div class="class-banner">
+          <div class="class-letter-big ${a.abcd}">${a.abcd}</div>
+          <div class="ttl">
+            <h2>${a.name}</h2>
+            <div class="sub">${a.id} · ${a.sector.toUpperCase()}</div>
+          </div>
+        </div>
+        <div class="score-row">
+          <div class="sc-cell"><span class="sc-val">${a.score}</span><span class="sc-lbl">SCORE</span></div>
+          <div class="sc-cell"><span class="sc-val" style="color:var(--text)">${a.band}</span><span class="sc-lbl">BAND</span></div>
+          <div class="sc-cell"><span class="sc-val" style="color:var(--text)">${a.revenue}</span><span class="sc-lbl">REVENUE</span></div>
+          <div class="sc-cell"><span class="sc-val" style="color:var(--text)">${a.employees ? a.employees.toLocaleString() : '—'}</span><span class="sc-lbl">FTE</span></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">Primary route</div>
+        <div class="f-value"><span class="route-tag ${a.route}">${routeLabel(a.route)}</span></div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">Why now · trigger evidence</div>
+        <div class="f-value">${escapeHtml(a.trigger.desc)}
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:6px;">
+            ${a.trigger.type.toUpperCase()} · ${a.trigger.date} · conf <span class="e-conf ${a.trigger.conf}">${a.trigger.conf.toUpperCase()}</span><br/>
+            <span style="color:var(--accent);">▸ ${a.trigger.src}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">First wedge</div>
+        <div class="f-value">${escapeHtml(a.wedge)}</div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">Likely buyer / sponsor</div>
+        <div class="f-value">
+          <strong>${escapeHtml(a.buyer.name)}</strong> · ${escapeHtml(a.buyer.role)}
+          <div style="font-family:var(--font-mono);font-size:10px;color:var(--muted);margin-top:3px;">conf <span class="e-conf ${a.buyer.conf}">${a.buyer.conf.toUpperCase()}</span></div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">Suggested opening angle</div>
+        <div class="f-value em">"${escapeHtml(a.angle)}"</div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">Next action</div>
+        <div class="f-value">${escapeHtml(a.next)}</div>
+      </div>
+
+      <div class="field">
+        <div class="f-label">Score breakdown · 7 dimensions</div>
+        <div class="score-bars">
+          ${SCORE_DIMS.map(d => `
+            <div class="sb-row">
+              <div class="sb-name">${d.label}</div>
+              <div class="sb-bar"><div class="sb-fill" style="width:${(a.scores[d.key]/d.max)*100}%"></div></div>
+              <div class="sb-val">${a.scores[d.key]}/${d.max}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+
+      <div class="review-row">
+        <div class="r-label">Human review status</div>
+        <button class="r-btn app ${a.review==='app'?'active':''}" data-r="app">APPROVE</button>
+        <button class="r-btn rev ${a.review==='rev'?'active':''}" data-r="rev">REVISE</button>
+        <button class="r-btn hold ${a.review==='hold'?'active':''}" data-r="hold">HOLD</button>
+        <button class="r-btn rej ${a.review==='rej'?'active':''}" data-r="rej">REJECT</button>
+      </div>
+    </div>
+  `;
+  body.querySelectorAll('.r-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      a.review = b.dataset.r;
+      toast(`${a.name} · ${REVIEW_TAGS[a.review].toUpperCase()}`);
+      renderBoard();
+      renderBrief();
+    });
+  });
+}
+
+/* ─── 15. Reset ─── */
+document.getElementById('resetBtn').addEventListener('click', () => {
+  state.ran = false;
+  state.evidence = [];
+  state.selectedAccount = null;
+  state.filters = { route:'all', band:'all', trig:'all' };
+  // Reset filter chips
+  document.querySelectorAll('.chip').forEach(c => {
+    c.classList.toggle('active', c.dataset.v === 'all');
+  });
+  // Hide results, run strip
+  document.getElementById('resultsView').classList.remove('visible');
+  document.getElementById('runStrip').classList.remove('visible');
+  document.getElementById('runMeter').textContent = 'step 0 / 10 · 0%';
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active','done'));
+  // Reset agent cards
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('running','completed'));
+  document.querySelectorAll('.agent-card .pill.status').forEach(p => {
+    p.className = 'pill status idle';
+    p.querySelector('.lbl').textContent = 'IDLE';
+    p.querySelector('.led').className = 'led';
+  });
+  // Clear chat body, restore suggestion
+  document.getElementById('chatBody').innerHTML = '';
+  const newSugg = document.createElement('div');
+  newSugg.className = 'chat-suggestion';
+  newSugg.id = 'chatSuggestion';
+  newSugg.innerHTML = `
+    <div class="sg-label">▸ SUGGESTED SCENARIO · APPENDIX B</div>
+    <div class="sg-body">"${SCENARIO_PROMPT}"</div>
+    <div class="sg-foot">CLICK TO INSERT · ⏎ TO RUN</div>`;
+  newSugg.addEventListener('click', () => { ta.value = SCENARIO_PROMPT; ta.focus(); });
+  document.getElementById('chatBody').appendChild(newSugg);
+  // Reset inspector
+  setInspectorMode('evidence');
+  window.scrollTo(0, 0);
+  document.querySelector('.main').scrollTo(0, 0);
+  toast('Demo reset · click the Master agent to begin again');
+});
+
+/* ─── 16. Toast ─── */
+const toastEl = document.getElementById('toast');
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add('visible');
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('visible'), 2400);
+}
+
+/* ─── 17. Boot ─── */
+renderAgents();
+renderSteps();
+renderEvidence();
+</script>
+
+</body>
+</html>
