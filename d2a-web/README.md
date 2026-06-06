@@ -72,7 +72,10 @@ This app lives in the **`d2a-web/` subfolder** of the D2A repo, so set the **Roo
 
 1. Push this repo to GitHub (the `d2a-web` folder must be included).
 2. In Vercel → **Add New Project** → import the repo.
-3. **Root Directory** → set to `d2a-web`. Framework preset auto-detects **Next.js**.
+3. **Root Directory** → set to `d2a-web`. **Framework Preset** must be **Next.js**. If you first
+   imported the repo at its root (which serves the static `index.html`), the preset can stay stuck on
+   "Other" and the build fails with *"No Output Directory named 'public'"* — set it to **Next.js** and
+   clear any **Output Directory** override. (`d2a-web/vercel.json` pins `framework: nextjs` to prevent this.)
 4. **Environment Variables** → add `ANTHROPIC_API_KEY` (and optionally `MODEL`, etc.).
 5. **Deploy.** You get a public URL.
 
