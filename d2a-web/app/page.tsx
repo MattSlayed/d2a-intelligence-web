@@ -59,31 +59,44 @@ function sanitise(arr: any[]): Account[] {
   }));
 }
 
-function extractAccounts(raw: string): Account[] | null {
-  const blocks = [...raw.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map((m) => m[1]);
-  for (let i = blocks.length - 1; i >= 0; i--) {
-    const txt = blocks[i].trim();
-    if (!txt.includes("accounts")) continue;
+function tryParseAccounts(txt: string): Account[] | null {
+  const t = txt.trim();
+  try {
+    const o = JSON.parse(t);
+    if (Array.isArray(o?.accounts)) return sanitise(o.accounts);
+  } catch {
+    /* fall through to repair */
+  }
+  // Repair a truncated array: keep up to the last complete object, then close it.
+  const lastObj = t.lastIndexOf("}");
+  if (lastObj > 0) {
+    const repaired = t.slice(0, lastObj + 1).replace(/,\s*$/, "") + "]}";
     try {
-      const obj = JSON.parse(txt);
-      if (Array.isArray(obj?.accounts)) return sanitise(obj.accounts);
+      const o = JSON.parse(repaired);
+      if (Array.isArray(o?.accounts)) return sanitise(o.accounts);
     } catch {
-      /* try the next block */
+      /* give up */
     }
   }
-  // Last resort: locate a { "accounts": ... } region and shrink to a parseable slice.
-  const at = raw.indexOf('"accounts"');
+  return null;
+}
+
+function extractAccounts(raw: string): Account[] | null {
+  // 1) closed fenced ```json blocks (prefer the last one that mentions accounts)
+  const blocks = [...raw.matchAll(/```(?:json)?\s*([\s\S]*?)```/g)].map((m) => m[1]);
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    if (!blocks[i].includes("accounts")) continue;
+    const p = tryParseAccounts(blocks[i]);
+    if (p) return p;
+  }
+  // 2) unclosed/truncated fence or bare object: take from the last "accounts" region to the end
+  const at = raw.lastIndexOf('"accounts"');
   if (at >= 0) {
     const start = raw.lastIndexOf("{", at);
     if (start >= 0) {
-      for (let end = raw.length; end > start; end--) {
-        try {
-          const obj = JSON.parse(raw.slice(start, end));
-          if (Array.isArray(obj?.accounts)) return sanitise(obj.accounts);
-        } catch {
-          /* keep shrinking */
-        }
-      }
+      const tail = raw.slice(start).replace(/```[\s\S]*$/, "");
+      const p = tryParseAccounts(tail);
+      if (p) return p;
     }
   }
   return null;

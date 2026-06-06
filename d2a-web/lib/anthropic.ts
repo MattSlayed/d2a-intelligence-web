@@ -32,3 +32,10 @@ export function isToolConfigError(err: unknown): boolean {
   const msg = String((err as { message?: string })?.message ?? err ?? "");
   return /tool|web_search|invalid_request|400/i.test(msg);
 }
+
+// True if an error is a rate limit (429). Heavy web search can exceed a low
+// usage tier's tokens-per-minute limit; callers fall back to search-free mode.
+export function isRateLimitError(err: unknown): boolean {
+  const e = err as { status?: number; message?: string };
+  return e?.status === 429 || /rate_limit|429|tokens per minute/i.test(String(e?.message ?? err ?? ""));
+}

@@ -25,7 +25,7 @@ const JSON_CONTRACT = `
 OUTPUT CONTRACT:
 1) Stream the run as concise narration. For EACH of the 9 stages, emit exactly one line that begins with a marker of the form:
    STEP k/9 | <STAGE NAME> | <one-line status>
-   (k is 1..9). You may add 1-3 short narration lines under each step. Base every claim on the RESEARCH FINDINGS provided and carry through their source URLs and confidence — do not invent new sources.
+   (k is 1..9). Emit ONE single line per stage — no extra prose under the steps. Base every claim on the RESEARCH FINDINGS provided and carry through their source URLs and confidence — do not invent new sources. Keep each rationale/trigger/wedge to one tight sentence.
 2) After the narration, output ONE fenced code block tagged json (and nothing after it) matching exactly:
 {
   "accounts": [
@@ -43,12 +43,19 @@ OUTPUT CONTRACT:
     }
   ]
 }
-Profile 8 to 12 representative accounts spanning all four classes (at least one A and one D). Emit the JSON promptly after the narration. Keep narration tight. British English.
+Profile 8 to 10 representative accounts spanning all four classes (at least one A and one D). The JSON board is the MOST IMPORTANT output — after the nine one-line steps, emit it IN FULL and properly closed (valid, complete JSON; do not truncate). Keep narration minimal. British English.
 `.trim();
 
 // PASS 1 — the dedicated research agent. Heavy web search, no scoring.
-export function buildResearchSystem(brief?: string): string {
+export function buildResearchSystem(brief?: string, web = true): string {
   const b = brief && brief.trim() ? brief.trim() : DEFAULT_BRIEF;
+  const gather =
+    "For each account gather: sector and rough firmographics (revenue band, headcount, ownership); any RECENT (last 24 months) trigger events — CIO/CFO/CAIO leadership moves, funding or results, M&A, restructures, major technology/AI initiatives, governance or regulatory events; and the likely executive owner of the dominant issue.";
+  const step2 = web
+    ? "2. Use web_search EFFICIENTLY — run at most 6-8 targeted queries IN TOTAL (batch related companies into a single query; do NOT run one search per account). Once you have enough signal, STOP searching and write the dossier promptly. " +
+      gather
+    : "2. Live web search is OFF for this run — work from your own up-to-date knowledge of these markets. Do NOT emit tool-call syntax or pretend to browse the web; just write the dossier directly. " +
+      gather;
   return [
     "You are the D2A Research Agent — a senior B2B research analyst working for NOVATEK's Target Account Intelligence system.",
     "Your sole job is RESEARCH. You build a candidate universe of REAL organisations that fit the brief, then gather grounded, citable intelligence on each. You do NOT score, rank or assign A/B/C/D — a separate analyst does that next.",
@@ -58,8 +65,8 @@ export function buildResearchSystem(brief?: string): string {
     "",
     "METHOD:",
     "1. Construct a candidate universe of 8-12 real organisations that fit the brief — correct geography, size band and sectors. Exclude any the brief excludes.",
-    "2. Use web_search with targeted queries to gather, per account: sector and rough firmographics (revenue band, headcount, ownership); any RECENT (last 24 months) trigger events — CIO/CFO/CAIO leadership moves, funding or results, M&A, restructures, major technology/AI initiatives, governance or regulatory events; and the likely executive owner of the dominant issue.",
-    "3. Prefer primary and credible sources (company sites, annual reports, reputable news). Capture a source URL for every material claim and your confidence (high/medium/low). Never fabricate URLs.",
+    step2,
+    "3. Cite credible, real sources (company sites, annual reports, reputable news). Capture a source URL for every material claim and your confidence (high/medium/low). Never fabricate URLs.",
     "",
     "OUTPUT: a concise, structured research dossier in markdown — one short block per account with: Name, Sector, Firmographics, Trigger event(s) with date, Likely executive owner, and a Sources list (claim -> URL -> confidence). Note explicitly where evidence is thin. Be thorough but do NOT score. Do NOT emit any JSON. Begin with a one-line bold heading 'Researching the candidate universe…' then proceed. British English.",
   ].join("\n");

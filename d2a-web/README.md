@@ -58,7 +58,7 @@ Requires Node 18+ (Node 20+ recommended).
 |---|---|---|---|
 | `ANTHROPIC_API_KEY` | **yes** | — | from console.anthropic.com |
 | `MODEL` | no | `claude-sonnet-4-6` | use `claude-opus-4-8` for deeper reasoning (higher cost) |
-| `ENABLE_WEB_SEARCH` | no | `true` | set `false` to disable live grounding |
+| `ENABLE_WEB_SEARCH` | no | `false` | `true` turns on the research agent's live web search — needs Anthropic **Tier 2+** (see Research mode) |
 | `WEB_SEARCH_TOOL` | no | `web_search_20260209` | update to the current tool version string if a deploy rejects it |
 
 > The API routes **degrade gracefully**: if the web-search tool is rejected, they retry the same
@@ -97,7 +97,7 @@ vercel --prod
 
 The sweep is a **two-pass research agent**:
 
-1. **Research pass** — a dedicated research agent runs `web_search` (up to 15 queries) to gather
+1. **Research pass** — a dedicated research agent runs `web_search` (up to ~8 targeted queries) to gather
    grounded, citable findings on the candidate accounts. You'll see `## Research agent` then
    `[web] searching…` lines stream in.
 2. **Synthesis pass** — `## Scoring pipeline`: a second pass (no search) scores the ABCD board from
@@ -110,9 +110,15 @@ that is why `maxDuration` is **300s** on `/api/run`.
 (research + synthesis) and `app/api/chat/route.ts` (chat). Keep it within your Vercel plan's limit —
 **Hobby ≈ 60s, Pro = 300s, Enterprise = 900s**.
 
-**To turn web grounding off** (fast, no external calls): set `ENABLE_WEB_SEARCH=false`. The research
-agent then works from the model's own knowledge and the sweep finishes in ~30s. The routes also
-**degrade gracefully** — if the `web_search` tool is rejected, they retry without it and continue.
+**Web grounding is OFF by default** (`ENABLE_WEB_SEARCH=false`) for reliability — the research agent
+then works from the model's own knowledge and the sweep finishes in ~30s. Set `ENABLE_WEB_SEARCH=true`
+to turn live search on.
+
+> **API tier matters.** Deep web search needs a higher **Anthropic usage tier**. On **Tier 1**
+> (30,000 input tokens/min) a heavy sweep injects large search results and hits a `429` rate limit.
+> The routes **degrade gracefully**: if the `web_search` tool is rejected **or** a rate limit is hit,
+> the research agent automatically falls back to search-free mode and the sweep still completes. For
+> full live grounding, raise your tier at console.anthropic.com (Tier 2+).
 
 ---
 
@@ -121,7 +127,7 @@ agent then works from the model's own knowledge and the sweep finishes in ~30s. 
 - **Open link** — there is no auth gate. Anyone with the URL can run sweeps and chat, which **spends
   your Anthropic credits**. For a controlled client demo, add a shared access code (a simple
   middleware password) or Vercel password protection before sharing widely.
-- **Cost control** — defaults to **Sonnet**. The research agent may run up to ~15 web searches per
+- **Cost control** — defaults to **Sonnet**. The research agent may run up to ~8 web searches per
   sweep and profiles ~8–12 accounts, so deeper grounding costs more. Set `ENABLE_WEB_SEARCH=false` for
   fast, search-free sweeps, or switch `MODEL` to Opus only when you need it.
 

@@ -1,4 +1,11 @@
-import { getClient, MODEL, ENABLE_WEB_SEARCH, webSearchTool, isToolConfigError } from "@/lib/anthropic";
+import {
+  getClient,
+  MODEL,
+  ENABLE_WEB_SEARCH,
+  webSearchTool,
+  isToolConfigError,
+  isRateLimitError,
+} from "@/lib/anthropic";
 import { buildResearchSystem, buildRunSystem } from "@/lib/prompts";
 
 export const runtime = "nodejs";
@@ -24,14 +31,19 @@ export async function POST(req: Request) {
       const client = getClient();
 
       // Stream a single model call; return the concatenated assistant text.
-      async function streamCall(system: string, userText: string, withTools: boolean): Promise<string> {
+      async function streamCall(
+        system: string,
+        userText: string,
+        withTools: boolean,
+        maxTokens = 6000,
+      ): Promise<string> {
         const params: Record<string, unknown> = {
           model: MODEL,
-          max_tokens: 6000,
+          max_tokens: maxTokens,
           system,
           messages: [{ role: "user", content: userText }],
         };
-        if (withTools) params.tools = [webSearchTool(15)];
+        if (withTools) params.tools = [webSearchTool(8)];
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const s = client.messages.stream(params as any);
         let text = "";
@@ -63,15 +75,17 @@ export async function POST(req: Request) {
         if (ENABLE_WEB_SEARCH) {
           try {
             research = await streamCall(
-              buildResearchSystem(brief),
+              buildResearchSystem(brief, true),
               "Research the target accounts now, following your brief. Gather grounded, citable findings.",
               true,
             );
           } catch (err) {
-            if (isToolConfigError(err)) {
-              send("\n[web] live grounding unavailable — researching from prior knowledge.\n");
+            if (isToolConfigError(err) || isRateLimitError(err)) {
+              send(
+                "\n[web] live grounding unavailable (tool limit or API rate limit) — researching from prior knowledge.\n",
+              );
               research = await streamCall(
-                buildResearchSystem(brief),
+                buildResearchSystem(brief, false),
                 "Research the target accounts now, following your brief, drawing on your own knowledge; cite credible real sources.",
                 false,
               );
@@ -81,7 +95,7 @@ export async function POST(req: Request) {
           }
         } else {
           research = await streamCall(
-            buildResearchSystem(brief),
+            buildResearchSystem(brief, false),
             "Research the target accounts now, following your brief, drawing on your own knowledge; cite credible real sources.",
             false,
           );
@@ -91,8 +105,9 @@ export async function POST(req: Request) {
         send("\n\n## Scoring pipeline\n");
         await streamCall(
           buildRunSystem(brief, { research }),
-          "Using the research findings, run the nine-stage pipeline now. Stream each STEP k/9 marker, then emit the final JSON block.",
+          "Using the research findings, run the nine-stage pipeline now. Stream each STEP k/9 marker, then emit the final JSON block in full.",
           false,
+          12000,
         );
 
         controller.close();
