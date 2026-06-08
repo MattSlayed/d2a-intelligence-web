@@ -12,11 +12,19 @@ function hostOf(url: string): string {
   }
 }
 
-export default function Inspector({ account }: { account: Account | null }) {
+export default function Inspector({
+  account,
+  innerRef,
+  focused,
+}: {
+  account: Account | null;
+  innerRef?: React.Ref<HTMLElement>;
+  focused?: boolean;
+}) {
   const [tab, setTab] = useState<"brief" | "evidence">("brief");
 
   return (
-    <aside className="inspector">
+    <aside className={"inspector" + (focused ? " focused" : "")} ref={innerRef}>
       <div className="insp-head">
         <div className="insp-head-row">
           {account ? (

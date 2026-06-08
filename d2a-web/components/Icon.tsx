@@ -13,7 +13,7 @@ type IconKey =
   | "orchestrator" | "universe" | "firmo" | "trigger" | "route"
   | "score" | "wedge" | "audit" | "package" | "contact"
   // ui
-  | "bolt" | "send" | "close" | "link" | "alert" | "target" | "play";
+  | "bolt" | "send" | "close" | "link" | "alert" | "target" | "play" | "menu";
 
 const P: Record<IconKey, ReactElement> = {
   // ── nav ──
@@ -48,6 +48,7 @@ const P: Record<IconKey, ReactElement> = {
   alert: <><path d="M12 9v4M12 17h.01" /><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" /></>,
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.4" /></>,
   play: <><path d="M7 4v16l13-8Z" /></>,
+  menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
 };
 
 export default function Icon({

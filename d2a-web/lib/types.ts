@@ -2,6 +2,17 @@
 
 export type AbcdClass = "A" | "B" | "C" | "D";
 
+// In-app view router — each value maps a sidebar item to a `.main` view.
+export type View =
+  | "dashboard"
+  | "agents"
+  | "pursuit"
+  | "memory"
+  | "skills"
+  | "mcp"
+  | "settings"
+  | "terminal";
+
 export interface EvidenceItem {
   claim: string;
   url: string;

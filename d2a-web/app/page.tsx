@@ -1,15 +1,21 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Sidebar from "@/components/Sidebar";
 import RunConsole from "@/components/RunConsole";
 import PursuitBoard from "@/components/PursuitBoard";
 import Inspector from "@/components/Inspector";
 import ChatDock from "@/components/ChatDock";
+import DashboardView from "@/components/DashboardView";
+import MemoryView from "@/components/MemoryView";
+import SkillsView from "@/components/SkillsView";
+import McpView from "@/components/McpView";
+import SettingsView from "@/components/SettingsView";
+import TerminalView from "@/components/TerminalView";
 import Icon from "@/components/Icon";
 import { PIPELINE } from "@/lib/agents";
 import { DEFAULT_BRIEF } from "@/lib/prompts";
-import type { Account, AbcdClass, ChatMessage, RunStepState } from "@/lib/types";
+import type { Account, AbcdClass, ChatMessage, RunStepState, View } from "@/lib/types";
 
 const MODEL_LABEL = "Claude · Messages API + web search";
 
@@ -115,6 +121,35 @@ export default function Page() {
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
+
+  // In-app view router (presentational only — all run state stays centralized here).
+  const [view, setView] = useState<View>("dashboard");
+  const inspectorRef = useRef<HTMLElement>(null);
+  const [inspectorFocus, setInspectorFocus] = useState(false);
+
+  // Mobile nav drawer (≤820px) — the sidebar is the app's navigator, so on
+  // narrow screens it slides in over a scrim from the topbar hamburger.
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Escape closes the mobile drawer.
+  useEffect(() => {
+    if (!mobileNavOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMobileNavOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileNavOpen]);
+
+  function onFocusInspector() {
+    // Reveal the inspector on narrow screens where the responsive CSS hides it,
+    // scroll it into view, and pulse a brief highlight.
+    setInspectorFocus(true);
+    requestAnimationFrame(() => {
+      inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+    window.setTimeout(() => setInspectorFocus(false), 1400);
+  }
 
   const counts = useMemo(() => {
     const c = { A: 0, B: 0, C: 0, D: 0, total: accounts.length } as Record<AbcdClass, number> & {
@@ -223,9 +258,26 @@ export default function Page() {
 
   return (
     <div className="app">
-      <Sidebar counts={counts} onOpenChat={() => setChatOpen(true)} />
+      <Sidebar
+        counts={counts}
+        view={view}
+        onNavigate={setView}
+        onOpenChat={() => setChatOpen(true)}
+        onFocusInspector={onFocusInspector}
+        mobileOpen={mobileNavOpen}
+        onNavClose={() => setMobileNavOpen(false)}
+      />
 
       <header className={"topbar" + (running ? " running" : "")}>
+        <button
+          type="button"
+          className="nav-toggle"
+          aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
+          aria-expanded={mobileNavOpen}
+          onClick={() => setMobileNavOpen((v) => !v)}
+        >
+          <Icon name={mobileNavOpen ? "close" : "menu"} />
+        </button>
         <div className="crumb">
           <span>NOVATEK Agentic OS</span>
           <span className="sep">/</span>
@@ -244,28 +296,67 @@ export default function Page() {
         </div>
       </header>
 
-      <main className="main">
-        <RunConsole
-          brief={brief}
-          setBrief={setBrief}
-          running={running}
-          onRun={onRun}
-          steps={steps}
-          narration={narration}
-          error={runError}
-          activeAgentId={activeAgentId}
-        />
-        <PursuitBoard
-          accounts={accounts}
-          filter={filter}
-          setFilter={setFilter}
-          selectedId={selectedId}
-          onSelect={(id) => setSelectedId(id)}
-          counts={counts}
-        />
+      <main className="main" key={view}>
+        {view === "dashboard" ? (
+          <DashboardView
+            accounts={accounts}
+            counts={counts}
+            running={running}
+            steps={steps}
+            error={runError}
+            activeAgentId={activeAgentId}
+            onNavigate={setView}
+            onSelect={(id) => setSelectedId(id)}
+          />
+        ) : view === "agents" ? (
+          <>
+            <RunConsole
+              brief={brief}
+              setBrief={setBrief}
+              running={running}
+              onRun={onRun}
+              steps={steps}
+              narration={narration}
+              error={runError}
+              activeAgentId={activeAgentId}
+            />
+            <PursuitBoard
+              accounts={accounts}
+              filter={filter}
+              setFilter={setFilter}
+              selectedId={selectedId}
+              onSelect={(id) => setSelectedId(id)}
+              counts={counts}
+            />
+          </>
+        ) : view === "pursuit" ? (
+          <PursuitBoard
+            accounts={accounts}
+            filter={filter}
+            setFilter={setFilter}
+            selectedId={selectedId}
+            onSelect={(id) => setSelectedId(id)}
+            counts={counts}
+          />
+        ) : view === "memory" ? (
+          <MemoryView />
+        ) : view === "skills" ? (
+          <SkillsView />
+        ) : view === "mcp" ? (
+          <McpView />
+        ) : view === "settings" ? (
+          <SettingsView
+            brief={brief}
+            setBrief={setBrief}
+            modelLabel={MODEL_LABEL}
+            running={running}
+          />
+        ) : view === "terminal" ? (
+          <TerminalView narration={narration} running={running} />
+        ) : null}
       </main>
 
-      <Inspector account={selected} />
+      <Inspector account={selected} innerRef={inspectorRef} focused={inspectorFocus} />
 
       <ChatDock
         open={chatOpen}
