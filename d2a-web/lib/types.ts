@@ -36,6 +36,7 @@ export interface AgentDef {
   name: string;
   role: string;
   glyph: string;
+  icon?: string; // optional inline-SVG key (see lib/icons)
   master?: boolean;
 }
 

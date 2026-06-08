@@ -2,6 +2,7 @@
 
 import { AGENTS } from "@/lib/agents";
 import type { AbcdClass } from "@/lib/types";
+import Icon from "./Icon";
 
 export default function Sidebar({
   counts,
@@ -25,32 +26,34 @@ export default function Sidebar({
 
       <nav className="nav-group">
         <div className="nav-head">Workspace</div>
-        <div className="nav-item">
-          <span className="nav-ico">▦</span> Dashboard
-        </div>
-        <div className="nav-item active">
-          <span className="nav-ico">◈</span> Agents <span className="nav-badge">{AGENTS.length}</span>
-        </div>
-        <div className="nav-item" style={{ cursor: "pointer" }} onClick={onOpenChat}>
-          <span className="nav-ico">▶</span> Chat
-        </div>
-        <div className="nav-item">
-          <span className="nav-ico">▤</span> Pursuit <span className="nav-badge">{counts.total}</span>
-        </div>
+        <button type="button" className="nav-item">
+          <span className="nav-ico"><Icon name="dashboard" /></span> Dashboard
+        </button>
+        <button type="button" className="nav-item active" aria-current="page">
+          <span className="nav-ico"><Icon name="agents" /></span> Agents
+          <span className="nav-badge">{AGENTS.length}</span>
+        </button>
+        <button type="button" className="nav-item" onClick={onOpenChat}>
+          <span className="nav-ico"><Icon name="chat" /></span> Chat
+        </button>
+        <button type="button" className="nav-item">
+          <span className="nav-ico"><Icon name="pursuit" /></span> Pursuit
+          <span className="nav-badge">{counts.total}</span>
+        </button>
       </nav>
 
       <nav className="nav-group">
         <div className="nav-head">Intelligence</div>
-        <div className="nav-item"><span className="nav-ico">◯</span> Memory</div>
-        <div className="nav-item"><span className="nav-ico">⌖</span> Inspector</div>
-        <div className="nav-item"><span className="nav-ico">≡</span> Skills</div>
-        <div className="nav-item"><span className="nav-ico">⎈</span> MCP</div>
+        <button type="button" className="nav-item"><span className="nav-ico"><Icon name="memory" /></span> Memory</button>
+        <button type="button" className="nav-item"><span className="nav-ico"><Icon name="inspector" /></span> Inspector</button>
+        <button type="button" className="nav-item"><span className="nav-ico"><Icon name="skills" /></span> Skills</button>
+        <button type="button" className="nav-item"><span className="nav-ico"><Icon name="mcp" /></span> MCP</button>
       </nav>
 
       <nav className="nav-group">
         <div className="nav-head">System</div>
-        <div className="nav-item"><span className="nav-ico">⚙</span> Settings</div>
-        <div className="nav-item"><span className="nav-ico">⎙</span> Terminal</div>
+        <button type="button" className="nav-item"><span className="nav-ico"><Icon name="settings" /></span> Settings</button>
+        <button type="button" className="nav-item"><span className="nav-ico"><Icon name="terminal" /></span> Terminal</button>
       </nav>
 
       <div className="side-foot">

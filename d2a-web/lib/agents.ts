@@ -2,16 +2,16 @@ import type { AgentDef } from "./types";
 
 // The D2A roster: a master orchestrator + 9 specialist agents.
 export const AGENTS: AgentDef[] = [
-  { id: "d2a", name: "D2A Orchestrator", role: "Master · pipeline control", glyph: "◆", master: true },
-  { id: "cub", name: "Universe Builder", role: "Candidate universe", glyph: "▣" },
-  { id: "fre", name: "Firmographic Enricher", role: "Revenue · headcount · ownership", glyph: "▤" },
-  { id: "trg", name: "Trigger Detector", role: "Buying signals (24m)", glyph: "◎" },
-  { id: "rou", name: "Executive Issue Router", role: "CFO / CIO / CAIO routing", glyph: "⇄" },
-  { id: "sco", name: "ABCD Classifier", role: "7-dimension scoring", glyph: "◐" },
-  { id: "wdg", name: "Wedge Recommender", role: "First-wedge offer", glyph: "➤" },
-  { id: "aud", name: "Evidence Auditor", role: "Claim ↔ source audit", glyph: "✓" },
-  { id: "pkg", name: "Pursuit Packager", role: "Class-A briefs", glyph: "▦" },
-  { id: "con", name: "Contact Enricher", role: "Gated · post-approval", glyph: "◌" },
+  { id: "d2a", name: "D2A Orchestrator", role: "Master · pipeline control", glyph: "◆", icon: "orchestrator", master: true },
+  { id: "cub", name: "Universe Builder", role: "Candidate universe", glyph: "▣", icon: "universe" },
+  { id: "fre", name: "Firmographic Enricher", role: "Revenue · headcount · ownership", glyph: "▤", icon: "firmo" },
+  { id: "trg", name: "Trigger Detector", role: "Buying signals (24m)", glyph: "◎", icon: "trigger" },
+  { id: "rou", name: "Executive Issue Router", role: "CFO / CIO / CAIO routing", glyph: "⇄", icon: "route" },
+  { id: "sco", name: "ABCD Classifier", role: "7-dimension scoring", glyph: "◐", icon: "score" },
+  { id: "wdg", name: "Wedge Recommender", role: "First-wedge offer", glyph: "➤", icon: "wedge" },
+  { id: "aud", name: "Evidence Auditor", role: "Claim ↔ source audit", glyph: "✓", icon: "audit" },
+  { id: "pkg", name: "Pursuit Packager", role: "Class-A briefs", glyph: "▦", icon: "package" },
+  { id: "con", name: "Contact Enricher", role: "Gated · post-approval", glyph: "◌", icon: "contact" },
 ];
 
 // The visible 9-stage pipeline (drives the run strip).

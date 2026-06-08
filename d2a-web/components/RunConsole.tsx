@@ -3,6 +3,17 @@
 import { useEffect, useRef } from "react";
 import { AGENTS } from "@/lib/agents";
 import type { RunStepState } from "@/lib/types";
+import Icon from "./Icon";
+
+/* Presentational-only classifier for a narration line. Does NOT alter the
+   underlying `narration` string or the parse logic in page.tsx. */
+function lineClass(line: string): string {
+  const t = line.trim();
+  if (/STEP\s+\d\s*\/\s*9/i.test(t)) return "l-step";
+  if (/^\[web\]|searching|web search|query:/i.test(t)) return "l-web";
+  if (/\b(done|complete|completed|finished|✓)\b/i.test(t)) return "l-done";
+  return "l-prose";
+}
 
 export default function RunConsole({
   brief,
@@ -29,7 +40,13 @@ export default function RunConsole({
   }, [narration]);
 
   const doneCount = steps.filter((s) => s.status === "done").length;
+  const activeCount = steps.filter((s) => s.status === "active").length;
   const pct = Math.round((doneCount / steps.length) * 100);
+  // progress fill: count done fully + half-weight the active node for live feel
+  const fillPct = Math.round(((doneCount + activeCount * 0.5) / steps.length) * 100);
+  const currentStep = Math.min(doneCount + (running ? 1 : 0), steps.length);
+
+  const lines = narration.length ? narration.split("\n") : [];
 
   return (
     <section className="panel">
@@ -39,7 +56,15 @@ export default function RunConsole({
           <div className="panel-sub">D2A · target account intelligence pipeline</div>
         </div>
         <button className="btn btn-primary" onClick={onRun} disabled={running}>
-          {running ? "Running…" : "Run sweep"}
+          {running ? (
+            <>
+              <span className="spinner" /> Running…
+            </>
+          ) : (
+            <>
+              <Icon name="bolt" /> Run sweep
+            </>
+          )}
         </button>
       </div>
       <div className="panel-body">
@@ -49,6 +74,7 @@ export default function RunConsole({
           onChange={(e) => setBrief(e.target.value)}
           disabled={running}
           spellCheck={false}
+          aria-label="Engagement brief"
         />
         <div className="run-actions">
           <span className="run-hint">
@@ -56,12 +82,22 @@ export default function RunConsole({
           </span>
         </div>
 
-        <div className="runstrip">
+        <div className={"runstrip" + (running ? " is-running" : "")}>
           <div className="runstrip-head">
             <span className="runstrip-title">Pipeline</span>
             <span className="runstrip-meter">
-              step {Math.min(doneCount + (running ? 1 : 0), steps.length)} / {steps.length} · {pct}%
+              step <b>{currentStep}</b> / {steps.length} · {pct}% complete
             </span>
+          </div>
+          <div
+            className="progress"
+            role="progressbar"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={pct}
+            aria-label="Pipeline progress"
+          >
+            <div className="progress-fill" style={{ width: `${Math.max(fillPct, running ? 4 : 0)}%` }} />
           </div>
           <div className="steps">
             {steps.map((s, i) => (
@@ -73,9 +109,26 @@ export default function RunConsole({
           </div>
         </div>
 
-        {error ? <div className="log-err">{error}</div> : null}
+        {error ? (
+          <div className="log-err" role="alert">
+            <Icon name="alert" />
+            <span>{error}</span>
+          </div>
+        ) : null}
+
         <div className="log" ref={logRef}>
-          {narration}
+          {lines.length === 0 ? (
+            <span className="log-empty">
+              <span className="blink" />
+              Idle. Enter a brief and run an intelligence sweep.
+            </span>
+          ) : (
+            lines.map((ln, i) => (
+              <span className={"log-line " + lineClass(ln)} key={i}>
+                {ln || " "}
+              </span>
+            ))
+          )}
         </div>
 
         <div className="agent-grid">
@@ -88,7 +141,9 @@ export default function RunConsole({
               }
               key={a.id}
             >
-              <div className="agent-ic">{a.glyph}</div>
+              <div className="agent-ic">
+                <Icon name={a.icon ?? "target"} />
+              </div>
               <div>
                 <div className="agent-name">{a.name}</div>
                 <div className="agent-role">{a.role}</div>

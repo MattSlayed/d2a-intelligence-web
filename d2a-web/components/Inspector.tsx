@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import type { Account } from "@/lib/types";
+import Icon from "./Icon";
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url.replace(/^https?:\/\//, "").split("/")[0] || url;
+  }
+}
 
 export default function Inspector({ account }: { account: Account | null }) {
   const [tab, setTab] = useState<"brief" | "evidence">("brief");
@@ -9,74 +18,102 @@ export default function Inspector({ account }: { account: Account | null }) {
   return (
     <aside className="inspector">
       <div className="insp-head">
-        <div className="insp-title">{account ? account.name : "Inspector"}</div>
-        <div className="insp-sub">
-          {account ? `${account.sector} · score ${account.score}/100` : "Select an account"}
+        <div className="insp-head-row">
+          {account ? (
+            <span className="insp-gauge" data-abcd={account.abcd} style={{ ["--p" as string]: account.score }}>
+              <span className="insp-gauge-val">{account.score}</span>
+            </span>
+          ) : null}
+          <div style={{ minWidth: 0 }}>
+            <div className="insp-title">{account ? account.name : "Inspector"}</div>
+            <div className="insp-sub">
+              {account ? `${account.sector} · score ${account.score}/100` : "Select an account"}
+            </div>
+          </div>
         </div>
       </div>
       <div className="insp-tabs">
-        <span className={"itab" + (tab === "brief" ? " active" : "")} onClick={() => setTab("brief")}>
+        <button
+          className={"itab" + (tab === "brief" ? " active" : "")}
+          onClick={() => setTab("brief")}
+          aria-pressed={tab === "brief"}
+        >
           BRIEF
-        </span>
-        <span
+        </button>
+        <button
           className={"itab" + (tab === "evidence" ? " active" : "")}
           onClick={() => setTab("evidence")}
+          aria-pressed={tab === "evidence"}
         >
           EVIDENCE
-        </span>
+          {account && account.evidence.length ? ` · ${account.evidence.length}` : ""}
+        </button>
       </div>
-      <div className="insp-body">
+      <div className="insp-body" key={tab}>
         {!account ? (
           <div className="insp-empty">
+            <div className="insp-empty-ic">
+              <Icon name="inspector" />
+            </div>
             No account selected. Run a sweep, then click any account on the pursuit board to inspect
             its brief and the evidence behind its score.
           </div>
         ) : tab === "brief" ? (
           <>
-            <div className="bf">
-              <div className="bf-label">Class</div>
-              <div className="bf-val">
+            <div className="bf hero">
+              <span className="insp-gauge" data-abcd={account.abcd} style={{ ["--p" as string]: account.score }}>
+                <span className="insp-gauge-val">{account.score}</span>
+              </span>
+              <div className="bf-body">
                 <span className="pill" data-abcd={account.abcd}>
                   CLASS {account.abcd}
                 </span>
-                &nbsp; {account.score}/100
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--muted)" }}>
+                  pursuit score {account.score} / 100
+                </span>
               </div>
             </div>
             <div className="bf">
-              <div className="bf-label">Trigger</div>
+              <div className="bf-label"><Icon name="trigger" /> Trigger</div>
               <div className="bf-val">{account.trigger}</div>
             </div>
             <div className="bf">
-              <div className="bf-label">Executive route</div>
+              <div className="bf-label"><Icon name="route" /> Executive route</div>
               <div className="bf-val">{account.buyer}</div>
             </div>
             <div className="bf">
-              <div className="bf-label">First wedge</div>
+              <div className="bf-label"><Icon name="wedge" /> First wedge</div>
               <div className="bf-val">{account.wedge}</div>
             </div>
             <div className="bf">
-              <div className="bf-label">Rationale</div>
+              <div className="bf-label"><Icon name="score" /> Rationale</div>
               <div className="bf-val">{account.rationale}</div>
             </div>
           </>
         ) : (
           <>
             {account.evidence.length === 0 ? (
-              <div className="insp-empty">No evidence captured for this account.</div>
+              <div className="insp-empty">
+                <div className="insp-empty-ic">
+                  <Icon name="audit" />
+                </div>
+                No evidence captured for this account.
+              </div>
             ) : (
               account.evidence.map((e, i) => (
-                <div className="ev-item" key={i}>
+                <div className="ev-item" key={i} style={{ animationDelay: `${Math.min(i * 0.05, 0.4)}s` }}>
                   <div className="ev-claim">{e.claim}</div>
-                  {e.url ? (
-                    <div className="ev-src">
-                      <a href={e.url} target="_blank" rel="noreferrer">
-                        {e.url}
+                  <div className="ev-foot">
+                    {e.confidence ? (
+                      <span className={"ev-conf " + e.confidence}>{e.confidence}</span>
+                    ) : null}
+                    {e.url ? (
+                      <a className="ev-src" href={e.url} target="_blank" rel="noreferrer" title={e.url}>
+                        <Icon name="link" />
+                        <span>{hostOf(e.url)}</span>
                       </a>
-                    </div>
-                  ) : null}
-                  {e.confidence ? (
-                    <span className={"ev-conf " + e.confidence}>{e.confidence} confidence</span>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </div>
               ))
             )}

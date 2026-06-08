@@ -6,6 +6,7 @@ import RunConsole from "@/components/RunConsole";
 import PursuitBoard from "@/components/PursuitBoard";
 import Inspector from "@/components/Inspector";
 import ChatDock from "@/components/ChatDock";
+import Icon from "@/components/Icon";
 import { PIPELINE } from "@/lib/agents";
 import { DEFAULT_BRIEF } from "@/lib/prompts";
 import type { Account, AbcdClass, ChatMessage, RunStepState } from "@/lib/types";
@@ -224,7 +225,7 @@ export default function Page() {
     <div className="app">
       <Sidebar counts={counts} onOpenChat={() => setChatOpen(true)} />
 
-      <header className="topbar">
+      <header className={"topbar" + (running ? " running" : "")}>
         <div className="crumb">
           <span>NOVATEK Agentic OS</span>
           <span className="sep">/</span>
@@ -233,12 +234,12 @@ export default function Page() {
           <span className="here">Target Account Intelligence</span>
         </div>
         <div className="top-right">
-          <div className="stat">
+          <div className="stat live">
             <span className={"dot" + (running ? "" : " idle")} /> {running ? "sweep running" : "idle"}
           </div>
           <div className="stat">{MODEL_LABEL}</div>
-          <button className="btn" onClick={() => setChatOpen(true)}>
-            ▶ Chat
+          <button className="btn" onClick={() => setChatOpen(true)} aria-label="Open analyst chat">
+            <Icon name="chat" /> Chat
           </button>
         </div>
       </header>
