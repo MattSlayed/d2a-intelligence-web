@@ -2,15 +2,11 @@
 
 import type { Account, AbcdClass, RunStepState, View } from "@/lib/types";
 import { AGENTS } from "@/lib/agents";
+import { ABCD_LABEL, ABCD_ACTION } from "@/lib/abcd";
+import { agentDisplayName, tileConfigFor } from "@/lib/tileConfig";
 import Icon from "./Icon";
 
 const CLASSES: AbcdClass[] = ["A", "B", "C", "D"];
-const CLASS_LABEL: Record<AbcdClass, string> = {
-  A: "Pursue",
-  B: "Develop",
-  C: "Watch",
-  D: "Park",
-};
 
 export default function DashboardView({
   accounts,
@@ -71,8 +67,8 @@ export default function DashboardView({
             <div className="dash-empty-title">No intelligence on the board yet</div>
             <p className="dash-empty-copy">
               Run a Target Account Intelligence sweep to build a candidate universe, score it across
-              the ABCD model and surface your Class-A pursuits. The dashboard will fill with live
-              telemetry the moment a sweep begins.
+              the pursuit model and surface your Hot Pursuit accounts. The dashboard will fill with
+              live telemetry the moment a sweep begins.
             </p>
             <button className="btn btn-primary" onClick={() => onNavigate("agents")}>
               <Icon name="play" /> Start your first sweep
@@ -89,7 +85,8 @@ export default function DashboardView({
                   className="dash-tile"
                   data-abcd={c}
                   onClick={() => onNavigate("pursuit")}
-                  aria-label={`Class ${c}, ${counts[c]} accounts`}
+                  aria-label={`${ABCD_LABEL[c]} (class ${c}), ${counts[c]} accounts`}
+                  title={`Class ${c}`}
                 >
                   <span
                     className="dash-gauge"
@@ -103,8 +100,8 @@ export default function DashboardView({
                     <span className="dash-gauge-val">{counts[c]}</span>
                   </span>
                   <div className="dash-tile-meta">
-                    <span className="dash-tile-class">Class {c}</span>
-                    <span className="dash-tile-action">{CLASS_LABEL[c]}</span>
+                    <span className="dash-tile-class">{ABCD_LABEL[c]}</span>
+                    <span className="dash-tile-action">{ABCD_ACTION[c]}</span>
                   </div>
                 </button>
               ))}
@@ -174,7 +171,7 @@ export default function DashboardView({
                   </div>
                   <div className="dash-stat">
                     <div className="dash-stat-val">{counts.A}</div>
-                    <div className="dash-stat-label">class A</div>
+                    <div className="dash-stat-label">hot pursuit</div>
                   </div>
                 </div>
 
@@ -216,10 +213,10 @@ export default function DashboardView({
                       (a.master ? " master" : "") +
                       (activeAgentId === a.id ? " active" : "")
                     }
-                    title={a.role}
+                    title={tileConfigFor(a.id)?.subtitle ?? a.role}
                   >
                     <Icon name={a.icon ?? "target"} />
-                    {a.name}
+                    {agentDisplayName(a.id)}
                   </span>
                 ))}
               </div>

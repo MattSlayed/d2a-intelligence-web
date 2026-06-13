@@ -1,9 +1,13 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { AGENTS } from "@/lib/agents";
-import type { RunStepState } from "@/lib/types";
+import type { Account, AbcdClass, RunStepState } from "@/lib/types";
+import type { RunConfig } from "@/lib/runConfig";
+import ConfigSummary from "./ConfigSummary";
+import PipelineTiles from "./PipelineTiles";
 import Icon from "./Icon";
+
+type Counts = Record<AbcdClass, number> & { total: number };
 
 /* Presentational-only classifier for a narration line. Does NOT alter the
    underlying `narration` string or the parse logic in page.tsx. */
@@ -24,6 +28,14 @@ export default function RunConsole({
   narration,
   error,
   activeAgentId,
+  accounts,
+  counts,
+  selectedTileId,
+  onSelectTile,
+  runConfig,
+  scenarioCount,
+  onSaveDefault,
+  onSaveScenario,
 }: {
   brief: string;
   setBrief: (b: string) => void;
@@ -33,18 +45,19 @@ export default function RunConsole({
   narration: string;
   error: string;
   activeAgentId: string | null;
+  accounts: Account[];
+  counts: Counts;
+  selectedTileId: string | null;
+  onSelectTile: (agentId: string) => void;
+  runConfig: RunConfig;
+  scenarioCount: number;
+  onSaveDefault: () => void;
+  onSaveScenario: () => void;
 }) {
   const logRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     logRef.current?.scrollTo({ top: logRef.current.scrollHeight });
   }, [narration]);
-
-  const doneCount = steps.filter((s) => s.status === "done").length;
-  const activeCount = steps.filter((s) => s.status === "active").length;
-  const pct = Math.round((doneCount / steps.length) * 100);
-  // progress fill: count done fully + half-weight the active node for live feel
-  const fillPct = Math.round(((doneCount + activeCount * 0.5) / steps.length) * 100);
-  const currentStep = Math.min(doneCount + (running ? 1 : 0), steps.length);
 
   const lines = narration.length ? narration.split("\n") : [];
 
@@ -52,8 +65,8 @@ export default function RunConsole({
     <section className="panel">
       <div className="panel-head">
         <div>
-          <div className="panel-title">Intelligence sweep</div>
-          <div className="panel-sub">D2A · target account intelligence pipeline</div>
+          <div className="panel-title">Targeting Brief</div>
+          <div className="panel-sub">Sets the narrative and guardrails for this sweep.</div>
         </div>
         <button className="btn btn-primary" onClick={onRun} disabled={running}>
           {running ? (
@@ -62,7 +75,7 @@ export default function RunConsole({
             </>
           ) : (
             <>
-              <Icon name="bolt" /> Run sweep
+              <Icon name="bolt" /> Run full pipeline
             </>
           )}
         </button>
@@ -74,40 +87,34 @@ export default function RunConsole({
           onChange={(e) => setBrief(e.target.value)}
           disabled={running}
           spellCheck={false}
-          aria-label="Engagement brief"
+          aria-label="Targeting brief"
         />
         <div className="run-actions">
           <span className="run-hint">
-            Edit the engagement brief, then run. The agents profile and score live, grounded with web search.
+            Describe who to target and why. The agents profile and score live, grounded with web
+            search — click any stage below to inspect or adjust it before you run.
           </span>
         </div>
 
-        <div className={"runstrip" + (running ? " is-running" : "")}>
-          <div className="runstrip-head">
-            <span className="runstrip-title">Pipeline</span>
-            <span className="runstrip-meter">
-              step <b>{currentStep}</b> / {steps.length} · {pct}% complete
-            </span>
-          </div>
-          <div
-            className="progress"
-            role="progressbar"
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pct}
-            aria-label="Pipeline progress"
-          >
-            <div className="progress-fill" style={{ width: `${Math.max(fillPct, running ? 4 : 0)}%` }} />
-          </div>
-          <div className="steps">
-            {steps.map((s, i) => (
-              <div className={"step " + s.status} key={s.id}>
-                <span className="step-ix">{s.status === "done" ? "✓" : i + 1}</span>
-                <span className="step-label">{s.label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
+        {/* Configuration summary — below the brief, above the pipeline (Change 6) */}
+        <ConfigSummary
+          runConfig={runConfig}
+          scenarioCount={scenarioCount}
+          onSaveDefault={onSaveDefault}
+          onSaveScenario={onSaveScenario}
+          onEdit={() => onSelectTile("cub")}
+        />
+
+        {/* Unified, clickable pipeline (master + stages + execution + output) */}
+        <PipelineTiles
+          steps={steps}
+          running={running}
+          accounts={accounts}
+          counts={counts}
+          activeAgentId={activeAgentId}
+          selectedTileId={selectedTileId}
+          onSelectTile={onSelectTile}
+        />
 
         {error ? (
           <div className="log-err" role="alert">
@@ -125,31 +132,10 @@ export default function RunConsole({
           ) : (
             lines.map((ln, i) => (
               <span className={"log-line " + lineClass(ln)} key={i}>
-                {ln || " "}
+                {ln || " "}
               </span>
             ))
           )}
-        </div>
-
-        <div className="agent-grid">
-          {AGENTS.map((a) => (
-            <div
-              className={
-                "agent-card" +
-                (a.master ? " master" : "") +
-                (activeAgentId === a.id ? " active" : "")
-              }
-              key={a.id}
-            >
-              <div className="agent-ic">
-                <Icon name={a.icon ?? "target"} />
-              </div>
-              <div>
-                <div className="agent-name">{a.name}</div>
-                <div className="agent-role">{a.role}</div>
-              </div>
-            </div>
-          ))}
         </div>
       </div>
     </section>

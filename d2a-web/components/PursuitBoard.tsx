@@ -1,22 +1,10 @@
 "use client";
 
 import type { Account, AbcdClass } from "@/lib/types";
+import { ABCD_LABEL, ABCD_ACTION } from "@/lib/abcd";
 import Icon from "./Icon";
 
 const CLASSES: AbcdClass[] = ["A", "B", "C", "D"];
-const LABEL: Record<AbcdClass, string> = {
-  A: "Class A · Pursue",
-  B: "Class B · Develop",
-  C: "Class C · Watch",
-  D: "Class D · Park",
-};
-// action verb derived from LABEL (kept consistent with the original map)
-const ACTION: Record<AbcdClass, string> = {
-  A: "Pursue now",
-  B: "Develop",
-  C: "Watch",
-  D: "Park",
-};
 
 export default function PursuitBoard({
   accounts,
@@ -40,14 +28,14 @@ export default function PursuitBoard({
       <div className="panel-head" style={{ flexDirection: "column", alignItems: "stretch" }}>
         <div>
           <div className="panel-title">Pursuit board</div>
-          <div className="panel-sub">ABCD classification · {counts.total} accounts</div>
+          <div className="panel-sub">Pursuit priority · {counts.total} accounts</div>
         </div>
         <div className="board-head" style={{ marginTop: 14 }}>
           <div className="counters">
             {CLASSES.map((c) => (
-              <div className="counter" data-abcd={c} key={c}>
+              <div className="counter" data-abcd={c} key={c} title={`Class ${c}`}>
                 <div className="counter-val">{counts[c]}</div>
-                <div className="counter-label">CLASS {c}</div>
+                <div className="counter-label">{ABCD_LABEL[c]}</div>
               </div>
             ))}
           </div>
@@ -59,6 +47,7 @@ export default function PursuitBoard({
                 aria-selected={filter === f}
                 className={"filter" + (filter === f ? " active" : "")}
                 onClick={() => setFilter(f)}
+                title={f === "ALL" ? "All classes" : ABCD_LABEL[f]}
               >
                 {f}
               </button>
@@ -86,8 +75,8 @@ export default function PursuitBoard({
                   <div className="col-head">
                     <span className="col-chip" />
                     <div style={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 0 }}>
-                      <span className="col-title">{LABEL[c].split(" · ")[0]}</span>
-                      <span className="col-action">{ACTION[c]}</span>
+                      <span className="col-title">{ABCD_LABEL[c]}</span>
+                      <span className="col-action">{ABCD_ACTION[c]}</span>
                     </div>
                     <span className="col-count">{list.length}</span>
                   </div>

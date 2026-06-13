@@ -13,7 +13,8 @@ type IconKey =
   | "orchestrator" | "universe" | "firmo" | "trigger" | "route"
   | "score" | "wedge" | "audit" | "package" | "contact"
   // ui
-  | "bolt" | "send" | "close" | "link" | "alert" | "target" | "play" | "menu";
+  | "bolt" | "send" | "close" | "link" | "alert" | "target" | "play" | "menu"
+  | "pause" | "lock" | "sliders";
 
 const P: Record<IconKey, ReactElement> = {
   // ── nav ──
@@ -49,6 +50,9 @@ const P: Record<IconKey, ReactElement> = {
   target: <><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="5" /><circle cx="12" cy="12" r="1.4" /></>,
   play: <><path d="M7 4v16l13-8Z" /></>,
   menu: <><path d="M4 7h16M4 12h16M4 17h16" /></>,
+  pause: <><rect x="6" y="5" width="4" height="14" rx="1" /><rect x="14" y="5" width="4" height="14" rx="1" /></>,
+  lock: <><rect x="4.5" y="11" width="15" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></>,
+  sliders: <><path d="M4 7h6M14 7h6M4 17h10M18 17h2M4 12h2M10 12h10" /><circle cx="12" cy="7" r="2" /><circle cx="8" cy="12" r="2" /><circle cx="16" cy="17" r="2" /></>,
 };
 
 export default function Icon({

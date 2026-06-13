@@ -15,9 +15,20 @@ import TerminalView from "@/components/TerminalView";
 import Icon from "@/components/Icon";
 import { PIPELINE } from "@/lib/agents";
 import { DEFAULT_BRIEF } from "@/lib/prompts";
+import {
+  DEFAULT_RUN_CONFIG,
+  loadDefaultConfig,
+  saveDefaultConfig,
+  loadScenarios,
+  saveScenarios,
+} from "@/lib/runConfig";
+import type { RunConfig, SavedScenario } from "@/lib/runConfig";
 import type { Account, AbcdClass, ChatMessage, RunStepState, View } from "@/lib/types";
 
 const MODEL_LABEL = "Claude · Messages API + web search";
+
+// Right-rail selection: a stage tile OR a pursuit account — never both.
+type Selection = { kind: "account"; id: string } | { kind: "tile"; agentId: string } | null;
 
 function freshSteps(): RunStepState[] {
   return PIPELINE.map((p) => ({ id: p.id, label: p.label, agentId: p.agentId, status: "idle" }));
@@ -117,19 +128,32 @@ export default function Page() {
   const [runError, setRunError] = useState("");
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [filter, setFilter] = useState<"ALL" | AbcdClass>("ALL");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selection, setSelection] = useState<Selection>(null);
   const [chatOpen, setChatOpen] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatBusy, setChatBusy] = useState(false);
 
+  // Run configuration + saved scenarios (Step 1: display / edit / persist only).
+  const [runConfig, setRunConfig] = useState<RunConfig>(DEFAULT_RUN_CONFIG);
+  const [scenarios, setScenarios] = useState<SavedScenario[]>([]);
+
   // In-app view router (presentational only — all run state stays centralized here).
   const [view, setView] = useState<View>("dashboard");
   const inspectorRef = useRef<HTMLElement>(null);
-  const [inspectorFocus, setInspectorFocus] = useState(false);
+  const [inspectorPulse, setInspectorPulse] = useState(false);
+  // Narrow-screen rail reveal: stays open until the user closes it.
+  const [railOpen, setRailOpen] = useState(false);
 
   // Mobile nav drawer (≤820px) — the sidebar is the app's navigator, so on
   // narrow screens it slides in over a scrim from the topbar hamburger.
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  // Restore persisted config + scenarios on mount (client only).
+  useEffect(() => {
+    const saved = loadDefaultConfig();
+    if (saved) setRunConfig(saved);
+    setScenarios(loadScenarios());
+  }, []);
 
   // Escape closes the mobile drawer.
   useEffect(() => {
@@ -141,14 +165,65 @@ export default function Page() {
     return () => window.removeEventListener("keydown", onKey);
   }, [mobileNavOpen]);
 
-  function onFocusInspector() {
-    // Reveal the inspector on narrow screens where the responsive CSS hides it,
-    // scroll it into view, and pulse a brief highlight.
-    setInspectorFocus(true);
+  // Escape closes the inspector rail when it is open as a narrow-screen overlay.
+  useEffect(() => {
+    if (!railOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !chatOpen) {
+        setRailOpen(false);
+        setSelection(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [railOpen, chatOpen]);
+
+  function revealRail() {
+    setRailOpen(true);
     requestAnimationFrame(() => {
       inspectorRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
-    window.setTimeout(() => setInspectorFocus(false), 1400);
+  }
+
+  function selectAccount(id: string) {
+    setSelection({ kind: "account", id });
+    revealRail();
+  }
+
+  function selectTile(agentId: string) {
+    setSelection({ kind: "tile", agentId });
+    revealRail();
+  }
+
+  function closeRail() {
+    setRailOpen(false);
+    setSelection(null);
+  }
+
+  function onFocusInspector() {
+    // Sidebar "Inspector" button — reveal the rail (and keep it open) plus a
+    // brief attention pulse.
+    revealRail();
+    setInspectorPulse(true);
+    window.setTimeout(() => setInspectorPulse(false), 1400);
+  }
+
+  function updateConfig(patch: Partial<RunConfig>) {
+    setRunConfig((c) => ({ ...c, ...patch }));
+  }
+
+  function saveDefault() {
+    saveDefaultConfig(runConfig);
+  }
+
+  function saveScenario() {
+    const stamp = Date.now();
+    const next: SavedScenario[] = [
+      ...scenarios,
+      { id: `scenario-${stamp}`, name: `Scenario ${scenarios.length + 1}`, config: runConfig, savedAt: stamp },
+    ];
+    setScenarios(next);
+    saveScenarios(next);
   }
 
   const counts = useMemo(() => {
@@ -159,10 +234,11 @@ export default function Page() {
     return c;
   }, [accounts]);
 
-  const selected = useMemo(
-    () => accounts.find((a) => a.id === selectedId) ?? null,
-    [accounts, selectedId],
+  const selectedAccount = useMemo(
+    () => (selection?.kind === "account" ? accounts.find((a) => a.id === selection.id) ?? null : null),
+    [accounts, selection],
   );
+  const selectedTileId = selection?.kind === "tile" ? selection.agentId : null;
 
   const activeAgentId = useMemo(() => {
     const active = steps.find((s) => s.status === "active");
@@ -176,7 +252,7 @@ export default function Page() {
     setRunError("");
     setNarration("");
     setAccounts([]);
-    setSelectedId(null);
+    setSelection(null);
     setSteps(freshSteps());
     try {
       const res = await fetch("/api/run", {
@@ -229,7 +305,7 @@ export default function Page() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next, account: selected?.name }),
+        body: JSON.stringify({ messages: next, account: selectedAccount?.name }),
       });
       if (!res.ok || !res.body) throw new Error(`Request failed (${res.status})`);
       const reader = res.body.getReader();
@@ -306,7 +382,7 @@ export default function Page() {
             error={runError}
             activeAgentId={activeAgentId}
             onNavigate={setView}
-            onSelect={(id) => setSelectedId(id)}
+            onSelect={selectAccount}
           />
         ) : view === "agents" ? (
           <>
@@ -319,13 +395,21 @@ export default function Page() {
               narration={narration}
               error={runError}
               activeAgentId={activeAgentId}
+              accounts={accounts}
+              counts={counts}
+              selectedTileId={selectedTileId}
+              onSelectTile={selectTile}
+              runConfig={runConfig}
+              scenarioCount={scenarios.length}
+              onSaveDefault={saveDefault}
+              onSaveScenario={saveScenario}
             />
             <PursuitBoard
               accounts={accounts}
               filter={filter}
               setFilter={setFilter}
-              selectedId={selectedId}
-              onSelect={(id) => setSelectedId(id)}
+              selectedId={selectedAccount?.id ?? null}
+              onSelect={selectAccount}
               counts={counts}
             />
           </>
@@ -334,8 +418,8 @@ export default function Page() {
             accounts={accounts}
             filter={filter}
             setFilter={setFilter}
-            selectedId={selectedId}
-            onSelect={(id) => setSelectedId(id)}
+            selectedId={selectedAccount?.id ?? null}
+            onSelect={selectAccount}
             counts={counts}
           />
         ) : view === "memory" ? (
@@ -356,7 +440,19 @@ export default function Page() {
         ) : null}
       </main>
 
-      <Inspector account={selected} innerRef={inspectorRef} focused={inspectorFocus} />
+      <Inspector
+        account={selectedAccount}
+        tileAgentId={selectedTileId}
+        runConfig={runConfig}
+        onUpdateConfig={updateConfig}
+        steps={steps}
+        counts={counts}
+        accounts={accounts}
+        innerRef={inspectorRef}
+        focused={inspectorPulse}
+        open={railOpen}
+        onClose={closeRail}
+      />
 
       <ChatDock
         open={chatOpen}
@@ -364,7 +460,7 @@ export default function Page() {
         messages={chatMessages}
         onSend={onSend}
         busy={chatBusy}
-        accountName={selected?.name}
+        accountName={selectedAccount?.name}
       />
     </div>
   );
