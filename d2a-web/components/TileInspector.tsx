@@ -164,8 +164,18 @@ export default function TileInspector({
 
   return (
     <div className="cfg-card">
+      {/* Card spec strip — instrument-panel framing for the shelf ledger */}
+      <div className="cfg-card-strip">
+        <span className="cfg-card-strip-id">{tile.agentId.toUpperCase()}</span>
+        <span className="cfg-card-strip-label">Agent configuration · 11 shelves</span>
+        <span className={"cfg-card-strip-state " + statusCls}>
+          <span className="ptile-badge-dot" />
+          {statusText}
+        </span>
+      </div>
+
       {/* Purpose */}
-      <div className="bf">
+      <div className="bf cfg-shelf">
         <div className="bf-label">
           <Icon name="target" /> Purpose
         </div>
@@ -173,7 +183,7 @@ export default function TileInspector({
       </div>
 
       {/* Default assumptions */}
-      <div className="bf">
+      <div className="bf cfg-shelf">
         <div className="bf-label">
           <Icon name="settings" /> Default assumptions
         </div>
@@ -181,9 +191,10 @@ export default function TileInspector({
       </div>
 
       {/* Editable settings */}
-      <div className="bf">
+      <div className="bf cfg-shelf cfg-shelf-live">
         <div className="bf-label">
           <Icon name="sliders" /> Editable settings
+          {tile.editable.length > 0 ? <span className="cfg-shelf-flag">live</span> : null}
         </div>
         {tile.editable.length === 0 ? (
           <div className="cfg-muted">No operator-editable settings for this stage.</div>
@@ -197,9 +208,10 @@ export default function TileInspector({
       </div>
 
       {/* Locked guardrails */}
-      <div className="bf">
+      <div className="bf cfg-shelf cfg-shelf-locked">
         <div className="bf-label">
           <Icon name="lock" /> Locked guardrails
+          <span className="cfg-shelf-flag warn">locked</span>
         </div>
         <ul className="cfg-list locked">
           {tile.guardrails.map((g, i) => (
@@ -212,13 +224,13 @@ export default function TileInspector({
 
       {/* Inputs / Outputs */}
       <div className="cfg-io">
-        <div className="bf">
+        <div className="bf cfg-shelf">
           <div className="bf-label">
             <Icon name="route" /> Inputs
           </div>
           <List items={tile.inputs} />
         </div>
-        <div className="bf">
+        <div className="bf cfg-shelf">
           <div className="bf-label">
             <Icon name="package" /> Outputs
           </div>
@@ -227,7 +239,7 @@ export default function TileInspector({
       </div>
 
       {/* Source / tool preferences */}
-      <div className="bf">
+      <div className="bf cfg-shelf">
         <div className="bf-label">
           <Icon name="universe" /> Source / tool preferences
         </div>
@@ -235,7 +247,7 @@ export default function TileInspector({
       </div>
 
       {/* Confidence rules */}
-      <div className="bf">
+      <div className="bf cfg-shelf">
         <div className="bf-label">
           <Icon name="audit" /> Confidence rules
         </div>
@@ -243,7 +255,7 @@ export default function TileInspector({
       </div>
 
       {/* Status */}
-      <div className="bf">
+      <div className="bf cfg-shelf">
         <div className="bf-label">
           <Icon name="bolt" /> Status
         </div>
@@ -256,7 +268,7 @@ export default function TileInspector({
       </div>
 
       {/* Last run summary */}
-      <div className="bf">
+      <div className="bf cfg-shelf">
         <div className="bf-label">
           <Icon name="terminal" /> Last run summary
         </div>
@@ -268,7 +280,7 @@ export default function TileInspector({
 
       {/* Issues / gaps */}
       {tile.issues && tile.issues.length ? (
-        <div className="bf">
+        <div className="bf cfg-shelf">
           <div className="bf-label">
             <Icon name="alert" /> Issues / gaps
           </div>

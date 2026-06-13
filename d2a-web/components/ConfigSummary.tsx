@@ -43,7 +43,7 @@ export default function ConfigSummary({
     timer.current = window.setTimeout(() => setFlash(null), 1800);
   }
 
-  const rows: { key: string; val: string }[] = [
+  const rows: { key: string; val: string; locked?: boolean }[] = [
     { key: "Geography", val: fmtList(runConfig.geography) },
     { key: "Industries", val: fmtList(runConfig.industries) },
     { key: "Revenue band", val: runConfig.revenueBand },
@@ -51,17 +51,23 @@ export default function ConfigSummary({
     { key: "Offer routes", val: fmtList(runConfig.routes) },
     { key: "Trigger window", val: `Last ${runConfig.triggerWindowMonths} months` },
     { key: "Exclusions", val: fmtList(runConfig.exclusions) },
-    { key: "Hot Pursuit evidence gate", val: `${runConfig.evidenceGateHotPursuit} confidence` },
-    { key: "Contact enrichment", val: runConfig.contactEnrichmentGated ? "Gated · after approval" : "Open" },
+    { key: "Hot Pursuit evidence gate", val: `${runConfig.evidenceGateHotPursuit} confidence`, locked: true },
+    { key: "Contact enrichment", val: runConfig.contactEnrichmentGated ? "Gated · after approval" : "Open", locked: true },
   ];
 
   return (
     <div className="cfg-summary">
       <div className="cfg-summary-head">
         <span className="cfg-summary-title">
-          <Icon name="sliders" /> Run configuration
+          <span className="cfg-summary-ic">
+            <Icon name="sliders" />
+          </span>
+          Run configuration
         </span>
-        <span className="set-tag live">Live</span>
+        <span className="cfg-summary-tag">
+          <span className="info-flag-dot" />
+          Pre-flight · {rows.length} parameters
+        </span>
       </div>
       <p className="cfg-summary-copy">
         The guardrails and assumptions for this sweep. Edit any value in a stage&rsquo;s
@@ -69,9 +75,13 @@ export default function ConfigSummary({
       </p>
 
       <div className="cfg-summary-grid">
-        {rows.map((r) => (
-          <div className="cfg-summary-row" key={r.key}>
-            <span className="cfg-summary-key">{r.key}</span>
+        {rows.map((r, i) => (
+          <div className={"cfg-summary-row" + (r.locked ? " is-locked" : "")} key={r.key}>
+            <span className="cfg-summary-idx">{String(i + 1).padStart(2, "0")}</span>
+            <span className="cfg-summary-key">
+              {r.key}
+              {r.locked ? <Icon name="lock" /> : null}
+            </span>
             <span className="cfg-summary-val">{r.val}</span>
           </div>
         ))}

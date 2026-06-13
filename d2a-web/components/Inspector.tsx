@@ -69,11 +69,16 @@ export default function Inspector({
               <span className="insp-gauge-val">{account.score}</span>
             </span>
           ) : mode === "tile" ? (
-            <span className="insp-tile-ic">
+            <span className={"insp-tile-ic" + (tile?.gated ? " gated" : "")}>
               <Icon name={tileIcon} />
             </span>
           ) : null}
           <div style={{ minWidth: 0, flex: 1 }}>
+            {mode === "tile" && tile ? (
+              <div className="insp-kicker">
+                {tile.gated ? "Gated stage" : tile.agentId === "d2a" ? "Master control" : "Pipeline stage"}
+              </div>
+            ) : null}
             <div className="insp-title">
               {mode === "tile" && tile ? tile.displayName : account ? account.name : "Inspector"}
             </div>

@@ -85,11 +85,20 @@ export default function PipelineTiles({
           <Icon name="orchestrator" />
         </span>
         <span className="pmaster-body">
+          <span className="pmaster-kicker">Master control</span>
           <span className="pmaster-name">{orch.displayName}</span>
           <span className="pmaster-sub">{orch.subtitle}</span>
         </span>
-        <span className="pmaster-meter">
-          step <b>{currentStep}</b> / {steps.length} · {pct}%
+        <span className="pmaster-gauge" aria-hidden="true">
+          <span className="pmaster-gauge-track">
+            <span
+              className="pmaster-gauge-fill"
+              style={{ width: `${Math.max(fillPct, running ? 4 : 0)}%` }}
+            />
+          </span>
+          <span className="pmaster-meter">
+            step <b>{currentStep}</b> / {steps.length} · {pct}%
+          </span>
         </span>
       </button>
 
@@ -123,7 +132,7 @@ export default function PipelineTiles({
         ))}
       </div>
 
-      {/* ── unified clickable stage tiles ── */}
+      {/* ── unified clickable stage tiles, wired by a flow conduit ── */}
       <div className="ptiles">
         {steps.map((s, i) => {
           const name = agentDisplayName(s.agentId);
@@ -133,6 +142,10 @@ export default function PipelineTiles({
           const statusLabel = gated && s.status !== "done" ? "Gated" : STATUS_LABEL[s.status] ?? "Idle";
           const prev = STAGE_PREVIEW[s.agentId];
           const isActive = s.status === "active" || activeAgentId === s.agentId;
+          // The conduit between stage i-1 → i is "charged" once the previous
+          // stage is done; it carries a live packet while the run is in flight.
+          const prevDone = i > 0 && steps[i - 1].status === "done";
+          const linkLive = running && (prevDone || isActive);
           return (
             <button
               key={s.id}
@@ -140,12 +153,22 @@ export default function PipelineTiles({
               className={
                 "ptile" +
                 (selectedTileId === s.agentId ? " is-selected" : "") +
-                (isActive ? " active" : "")
+                (isActive ? " active" : "") +
+                (s.status === "done" ? " is-done" : "") +
+                (gated ? " is-gated" : "")
               }
               onClick={() => onSelectTile(s.agentId)}
               aria-pressed={selectedTileId === s.agentId}
               aria-label={`${name} — ${statusLabel}. Open configuration.`}
             >
+              {i > 0 ? (
+                <span
+                  className={"ptile-link" + (prevDone ? " charged" : "") + (linkLive ? " live" : "")}
+                  aria-hidden="true"
+                >
+                  <span className="ptile-packet" />
+                </span>
+              ) : null}
               <span className="ptile-head">
                 <span className="ptile-ix">{s.status === "done" ? "✓" : i + 1}</span>
                 <span className={"ptile-badge " + statusCls}>
@@ -153,12 +176,20 @@ export default function PipelineTiles({
                   {statusLabel}
                 </span>
               </span>
-              <span className="ptile-name">{name}</span>
+              <span className="ptile-name">
+                {gated ? (
+                  <span className="ptile-lock" aria-hidden="true">
+                    <Icon name="lock" />
+                  </span>
+                ) : null}
+                {name}
+              </span>
               <span className="ptile-sub">{sub}</span>
               <span className="ptile-foot">
                 <span className="chip preview" title="Step 2 preview — sample volume">
                   in {prev?.in ?? "—"}
                 </span>
+                <span className="chip flow" aria-hidden="true">→</span>
                 <span className="chip preview" title="Step 2 preview — sample volume">
                   out {prev?.out ?? "—"}
                 </span>

@@ -60,37 +60,57 @@ export default function RunConsole({
   }, [narration]);
 
   const lines = narration.length ? narration.split("\n") : [];
+  const briefChars = brief.trim().length;
 
   return (
-    <section className="panel">
-      <div className="panel-head">
-        <div>
-          <div className="panel-title">Targeting Brief</div>
-          <div className="panel-sub">Sets the narrative and guardrails for this sweep.</div>
+    <section className="panel deck">
+      <div className="deck-head">
+        <div className="deck-id">
+          <span className="deck-sigil">
+            <Icon name="target" />
+          </span>
+          <div className="deck-meta">
+            <span className="deck-kicker">Mission Control · D2A</span>
+            <span className="deck-title">Targeting Brief</span>
+            <span className="deck-sub">Sets the narrative and guardrails for this sweep.</span>
+          </div>
         </div>
-        <button className="btn btn-primary" onClick={onRun} disabled={running}>
-          {running ? (
-            <>
-              <span className="spinner" /> Running…
-            </>
-          ) : (
-            <>
-              <Icon name="bolt" /> Run full pipeline
-            </>
-          )}
-        </button>
+        <div className="deck-aside">
+          <span className={"deck-readout " + (running ? "live" : "armed")}>
+            <span className="rdot" />
+            {running ? "Sweep running" : "Armed · ready"}
+          </span>
+          <button className="btn btn-primary btn-launch" onClick={onRun} disabled={running}>
+            {running ? (
+              <>
+                <span className="spinner" /> Running…
+              </>
+            ) : (
+              <>
+                <Icon name="bolt" /> Run full pipeline
+              </>
+            )}
+          </button>
+        </div>
       </div>
       <div className="panel-body">
-        <textarea
-          className="brief"
-          value={brief}
-          onChange={(e) => setBrief(e.target.value)}
-          disabled={running}
-          spellCheck={false}
-          aria-label="Targeting brief"
-        />
+        <div className={"brief-field" + (running ? " is-running" : "")}>
+          <textarea
+            className="brief"
+            value={brief}
+            onChange={(e) => setBrief(e.target.value)}
+            disabled={running}
+            spellCheck={false}
+            aria-label="Targeting brief"
+          />
+          <span className="brief-rule" aria-hidden="true">
+            <span className="brief-rule-tag">INPUT · OPERATOR BRIEF</span>
+            <span className="brief-rule-count">{briefChars} chars</span>
+          </span>
+        </div>
         <div className="run-actions">
           <span className="run-hint">
+            <Icon name="target" />
             Describe who to target and why. The agents profile and score live, grounded with web
             search — click any stage below to inspect or adjust it before you run.
           </span>
@@ -123,6 +143,13 @@ export default function RunConsole({
           </div>
         ) : null}
 
+        <div className={"log-deck" + (running ? " is-running" : "")}>
+          <span className="log-deck-head">
+            <Icon name="terminal" />
+            Narration telemetry
+            <span className="log-deck-flag">{running ? "streaming" : "standby"}</span>
+          </span>
+        </div>
         <div className="log" ref={logRef}>
           {lines.length === 0 ? (
             <span className="log-empty">

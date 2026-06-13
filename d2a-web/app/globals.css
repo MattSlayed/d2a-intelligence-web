@@ -172,6 +172,18 @@ a:hover { text-decoration: underline; }
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* ── v1.1 redesign keyframes (same instrument-deck spirit) ── */
+/* traveling energy pulse that runs the pipeline conduit/connectors */
+@keyframes flow { from { background-position: 0 0; } to { background-position: 200% 0; } }
+/* a single packet riding a connector between stages */
+@keyframes packet { 0% { left: -8px; opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } 100% { left: calc(100% + 4px); opacity: 0; } }
+/* soft breathing halo for live/master elements */
+@keyframes halo { 0%, 100% { box-shadow: var(--glow-soft); } 50% { box-shadow: var(--glow-strong); } }
+/* command-deck header sweep on load */
+@keyframes deckSweep { from { transform: scaleX(0); opacity: 0; } to { transform: scaleX(1); opacity: 1; } }
+/* tactile chip press feedback */
+@keyframes chipPop { 0% { transform: scale(0.94); } 60% { transform: scale(1.03); } 100% { transform: scale(1); } }
+
 .app > * { animation: rise 0.6s var(--ease-out) both; }
 /* The sidebar is wrapped in .side-scrim (display:contents on desktop) so it
    keeps its grid placement; reveal it via the fade keyframe like before. */
@@ -303,6 +315,10 @@ a:hover { text-decoration: underline; }
 
 /* ───────────────────────── main ───────────────────────── */
 .main { grid-area: main; overflow-y: auto; padding: 22px; display: flex; flex-direction: column; gap: 20px; }
+/* Panels take their natural height and the main area scrolls — never let the
+   flex column shrink a panel (a panel with overflow:hidden would otherwise get a
+   0 automatic min-size and clip its own content, e.g. the pipeline tiles). */
+.main > .panel { flex-shrink: 0; }
 
 .panel {
   background:
@@ -322,13 +338,95 @@ a:hover { text-decoration: underline; }
 .panel-sub { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); margin-top: 5px; letter-spacing: 0.05em; }
 .panel-body { padding: 18px 20px; }
 
-/* brief + run */
-.brief { width: 100%; resize: vertical; min-height: 78px; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: 13px 15px; font-family: var(--font-ui); font-size: 13.5px; line-height: 1.6; transition: border-color var(--t-fast), box-shadow var(--t-fast); box-shadow: inset 0 1px 3px rgba(8, 16, 30, 0.4); }
+/* ════════════════════════════════════════════════════════════════════
+   COMMAND-DECK HEADER — bracketed "mission control" framing for the
+   Targeting Brief panel head. Built on the shared .panel chrome.
+   ════════════════════════════════════════════════════════════════════ */
+.panel.deck { overflow: hidden; }
+.deck-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 18px;
+  padding: 18px 22px 17px; position: relative;
+  border-bottom: 1px solid var(--border);
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.08), transparent),
+    repeating-linear-gradient(135deg, rgba(59, 130, 246, 0.025) 0 2px, transparent 2px 9px);
+}
+/* hairline rule that "draws" across the deck head on load */
+.deck-head::after {
+  content: ""; position: absolute; left: 22px; right: 22px; bottom: -1px; height: 1px;
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--cobalt), var(--cobalt-line) 55%, transparent);
+  animation: deckSweep 0.7s var(--ease-out) both; animation-delay: 0.25s;
+}
+.deck-id { display: flex; align-items: flex-start; gap: 14px; min-width: 0; }
+/* command sigil — bracketed instrument icon */
+.deck-sigil {
+  width: 46px; height: 46px; flex-shrink: 0; border-radius: 12px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.20), var(--bg));
+  border: 1px solid var(--border-strong);
+  display: grid; place-items: center; color: var(--cobalt-light);
+  box-shadow: var(--glow-soft), inset 0 1px 0 rgba(180, 200, 230, 0.06);
+  position: relative;
+}
+.deck-sigil svg { width: 23px; height: 23px; }
+/* corner brackets on the sigil for the cockpit framing */
+.deck-sigil::before, .deck-sigil::after {
+  content: ""; position: absolute; width: 8px; height: 8px; pointer-events: none;
+  border-color: var(--cobalt-line); border-style: solid;
+}
+.deck-sigil::before { top: -3px; left: -3px; border-width: 1px 0 0 1px; border-radius: 3px 0 0 0; }
+.deck-sigil::after  { bottom: -3px; right: -3px; border-width: 0 1px 1px 0; border-radius: 0 0 3px 0; }
+.deck-meta { min-width: 0; display: flex; flex-direction: column; gap: 4px; padding-top: 1px; }
+.deck-kicker {
+  font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--cobalt-light);
+  letter-spacing: 0.22em; text-transform: uppercase; display: inline-flex; align-items: center; gap: 8px;
+}
+.deck-kicker::before { content: ""; width: 14px; height: 1px; background: var(--cobalt); display: inline-block; }
+.deck-title { font-family: var(--font-display); font-size: var(--fs-xl); font-weight: 700; letter-spacing: -0.02em; line-height: 1.05; }
+.deck-sub { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); letter-spacing: 0.04em; }
+.deck-aside { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
+/* readout chip — armed / running status on the deck head */
+.deck-readout {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  padding: 5px 11px; border-radius: var(--r-pill);
+  background: var(--bg); border: 1px solid var(--border); color: var(--muted);
+}
+.deck-readout .rdot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.deck-readout.armed { color: var(--success); border-color: rgba(52, 211, 153, 0.35); background: rgba(52, 211, 153, 0.07); }
+.deck-readout.armed .rdot { box-shadow: 0 0 8px var(--success); }
+.deck-readout.live { color: var(--cobalt-light); border-color: var(--cobalt-line); background: var(--cobalt-soft); }
+.deck-readout.live .rdot { box-shadow: 0 0 8px var(--cobalt-light); animation: pulse-dot 1.2s var(--ease-in-out) infinite; }
+
+/* the launch control (Run full pipeline) */
+.btn-launch { min-height: 42px; padding: 9px 20px; font-size: 13px; letter-spacing: 0.01em; position: relative; overflow: hidden; }
+.btn-launch::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.28), transparent);
+  background-size: 60px 100%;
+}
+.btn-launch:not(:disabled):hover::after { opacity: 1; animation: sheen 1.1s linear infinite; }
+.btn-launch svg { width: 16px; height: 16px; }
+
+/* ── brief field: instrument-grade input ── */
+.brief-field { position: relative; }
+/* corner ticks framing the brief like a viewport */
+.brief-field::before, .brief-field::after {
+  content: ""; position: absolute; width: 10px; height: 10px; pointer-events: none; z-index: 2;
+  border-color: var(--border-strong); border-style: solid;
+  transition: border-color var(--t-fast) var(--ease-out);
+}
+.brief-field::before { top: 7px; left: 7px; border-width: 1px 0 0 1px; }
+.brief-field::after  { bottom: 7px; right: 7px; border-width: 0 1px 1px 0; }
+.brief-field:focus-within::before, .brief-field:focus-within::after { border-color: var(--cobalt); }
+.brief { width: 100%; resize: vertical; min-height: 84px; background: var(--bg); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--r-md); padding: 14px 16px; font-family: var(--font-ui); font-size: 13.5px; line-height: 1.6; transition: border-color var(--t-fast), box-shadow var(--t-fast); box-shadow: inset 0 1px 3px rgba(8, 16, 30, 0.4); }
 .brief::placeholder { color: var(--muted); }
-.brief:focus { outline: none; border-color: var(--cobalt); box-shadow: 0 0 0 3px var(--cobalt-soft), inset 0 1px 3px rgba(8, 16, 30, 0.4); }
+.brief:focus { outline: none; border-color: var(--cobalt); box-shadow: 0 0 0 3px var(--cobalt-soft), inset 0 1px 3px rgba(8, 16, 30, 0.4), 0 0 24px rgba(37, 99, 235, 0.18); }
 .brief:disabled { opacity: 0.7; }
-.run-actions { display: flex; align-items: center; gap: 14px; margin-top: 13px; }
-.run-hint { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); line-height: 1.5; }
+.run-actions { display: flex; align-items: center; gap: 12px; margin-top: 13px; }
+.run-hint { font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--muted); line-height: 1.55; display: flex; align-items: flex-start; gap: 9px; }
+.run-hint svg { width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px; color: var(--cobalt-light); opacity: 0.8; }
 
 /* ── run strip: telemetry rail ── */
 .runstrip { margin-top: 22px; }
@@ -868,6 +966,272 @@ a:hover { text-decoration: underline; }
 .cfg-io { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .cfg-status { display: flex; }
 
+/* ════════════════════════════════════════════════════════════════════
+   V1.1 VISUAL REDESIGN PASS — flight-deck refinement for the Targeting
+   Brief, the pre-flight config checklist, the wired pipeline conduit, and
+   the instrument-shelf Configuration Card. Vanilla CSS, NOVATEK tokens.
+
+   New keyframes:  conduitGlow · packetRunV · ledgerDraw · lockPulse · gaugeRise
+   New families:   .brief-rule · .log-deck · .cfg-summary-idx/-ic/-tag
+                   .pmaster-kicker/-gauge · .ptiles(conduit) · .ptile-link/-packet
+                   .ptile-lock · .ptile.is-gated(hazard) · .cfg-card-strip
+                   .cfg-shelf(ledger)/-live/-locked/-flag · .insp-kicker
+                   .insp-tile-ic.gated
+   ════════════════════════════════════════════════════════════════════ */
+
+@keyframes conduitGlow { 0%, 100% { opacity: 0.55; } 50% { opacity: 1; } }
+@keyframes packetRunV {
+  0%   { top: -8px; opacity: 0; }
+  15%  { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { top: 100%; opacity: 0; }
+}
+@keyframes ledgerDraw { from { opacity: 0; transform: translateX(-6px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes lockPulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+@keyframes gaugeRise { from { width: 0; } }
+
+/* ── COMMAND-DECK BRIEF — instrument-grade field rule ──────────────── */
+.brief-field .brief { min-height: 96px; padding-bottom: 30px; }
+.brief-rule {
+  position: absolute; left: 12px; right: 12px; bottom: 9px; z-index: 1;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  pointer-events: none;
+}
+.brief-rule-tag {
+  font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--muted);
+  letter-spacing: 0.16em; display: inline-flex; align-items: center; gap: 8px;
+  transition: color var(--t-fast) var(--ease-out);
+}
+.brief-rule-tag::before {
+  content: ""; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--border-strong); transition: all var(--t-fast) var(--ease-out);
+}
+.brief-field:focus-within .brief-rule-tag { color: var(--cobalt-light); }
+.brief-field:focus-within .brief-rule-tag::before { background: var(--cobalt-light); box-shadow: 0 0 8px var(--cobalt-light); }
+.brief-rule-count { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--muted); letter-spacing: 0.06em; }
+
+/* ── NARRATION TELEMETRY HEAD (sits atop the existing .log block) ──── */
+.log-deck { margin-top: 20px; }
+.log-deck-head {
+  display: flex; align-items: center; gap: 9px;
+  font-family: var(--font-mono); font-size: var(--fs-xs); color: var(--text-soft);
+  letter-spacing: 0.16em; text-transform: uppercase;
+  padding: 9px 14px; border: 1px solid var(--border); border-bottom: none;
+  border-radius: var(--r-md) var(--r-md) 0 0;
+  background: linear-gradient(180deg, var(--surface), var(--panel));
+}
+.log-deck-head svg { width: 14px; height: 14px; color: var(--cobalt-light); flex-shrink: 0; }
+.log-deck-flag {
+  margin-left: auto; font-size: var(--fs-2xs); letter-spacing: 0.12em; color: var(--muted);
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.log-deck-flag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+.log-deck.is-running .log-deck-flag { color: var(--cobalt-light); }
+.log-deck.is-running .log-deck-flag::before { background: var(--cobalt-light); box-shadow: 0 0 8px var(--cobalt-light); animation: pulse-dot 1.2s var(--ease-in-out) infinite; }
+/* dock the existing .log to the telemetry head */
+.log-deck + .log { margin-top: 0; border-radius: 0 0 var(--r-md) var(--r-md); }
+
+/* ── PRE-FLIGHT CONFIG CHECKLIST (upgrades the .cfg-summary family) ── */
+.cfg-summary {
+  position: relative; overflow: hidden;
+  padding: 17px 18px;
+  background:
+    linear-gradient(180deg, rgba(37, 99, 235, 0.05), transparent 90px),
+    linear-gradient(180deg, rgba(8, 16, 30, 0.3), var(--bg));
+  border-color: var(--border-strong);
+  box-shadow: var(--sh-1);
+}
+.cfg-summary::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--cobalt), var(--navy-light));
+  box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+}
+.cfg-summary-head { margin-bottom: 5px; }
+.cfg-summary-title { gap: 11px; }
+.cfg-summary-ic {
+  width: 30px; height: 30px; flex-shrink: 0; border-radius: 9px;
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.18), var(--bg));
+  border: 1px solid var(--border-strong); display: grid; place-items: center;
+  color: var(--cobalt-light); box-shadow: var(--glow-soft);
+}
+.cfg-summary-ic svg { width: 16px; height: 16px; }
+.cfg-summary-tag {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 8px;
+  font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600;
+  letter-spacing: 0.10em; text-transform: uppercase; color: var(--cobalt-light);
+  padding: 5px 11px; border-radius: var(--r-pill);
+  background: var(--cobalt-soft); border: 1px solid var(--cobalt-line);
+}
+.cfg-summary-tag .info-flag-dot { background: var(--cobalt-light); box-shadow: 0 0 8px var(--cobalt-light); animation: pulse-dot 1.4s var(--ease-in-out) infinite; }
+.cfg-summary-grid { gap: 0 26px; }
+.cfg-summary-row {
+  display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 11px;
+  padding: 10px 4px 9px; border-bottom: 1px dashed var(--border);
+  animation: ledgerDraw 0.4s var(--ease-out) both;
+}
+.cfg-summary-idx {
+  font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600;
+  color: var(--muted); letter-spacing: 0.04em;
+  padding: 1px 6px; border-radius: var(--r-sm);
+  border: 1px solid var(--border); background: var(--surface); white-space: nowrap;
+}
+.cfg-summary-key { display: inline-flex; align-items: center; gap: 7px; white-space: normal; }
+.cfg-summary-key svg { width: 11px; height: 11px; color: var(--c); flex-shrink: 0; opacity: 0.85; }
+.cfg-summary-row.is-locked .cfg-summary-idx { color: var(--c); border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.07); }
+.cfg-summary-val { white-space: normal; }
+
+/* ── PIPELINE MASTER CONTROL (orchestrator deck bar) ──────────────── */
+.pipeline-master { padding: 13px 16px; gap: 15px; }
+.pmaster-ic { width: 42px; height: 42px; border-radius: 11px; box-shadow: var(--glow-soft), inset 0 1px 0 rgba(180, 200, 230, 0.06); position: relative; }
+.pmaster-ic::after { content: ""; position: absolute; inset: -3px; border-radius: 13px; border: 1px solid var(--cobalt-line); opacity: 0; transition: opacity var(--t-mid); }
+.pipeline-master:hover .pmaster-ic::after, .pipeline-master.active .pmaster-ic::after { opacity: 1; }
+.pipeline-master.active .pmaster-ic { color: #fff; background: linear-gradient(135deg, var(--cobalt), var(--navy)); border-color: var(--cobalt); box-shadow: 0 0 16px rgba(37, 99, 235, 0.5); }
+.pmaster-kicker { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--cobalt-light); letter-spacing: 0.18em; text-transform: uppercase; }
+.pmaster-name { font-size: var(--fs-lg); }
+.pmaster-gauge { display: flex; flex-direction: column; align-items: flex-end; gap: 7px; flex-shrink: 0; min-width: 132px; }
+.pmaster-gauge-track { width: 132px; height: 4px; border-radius: var(--r-pill); background: var(--bg); border: 1px solid var(--border); overflow: hidden; }
+.pmaster-gauge-fill {
+  display: block; height: 100%; border-radius: var(--r-pill);
+  background: linear-gradient(90deg, var(--navy-light), var(--cobalt) 60%, var(--cobalt-light));
+  box-shadow: 0 0 10px rgba(37, 99, 235, 0.5);
+  transition: width var(--t-slow) var(--ease-out); animation: gaugeRise var(--t-slow) var(--ease-out);
+}
+
+/* ── WIRED STAGE CONDUIT — inlet ports + traveling packets ────────── */
+/* The .ptile keeps overflow:hidden (for the active scan sweep), so the
+   connector reads as an inlet PORT drawn on the tile's own left edge — a
+   wired bus rail down the inside of each downstream stage. The packet
+   rides that rail during a live run. */
+.ptiles { position: relative; gap: 13px 14px; row-gap: 16px; }
+.ptile { padding: 13px 14px 13px 18px; }
+.ptile-link {
+  position: absolute; top: 12px; bottom: 12px; left: 0; width: 3px;
+  pointer-events: none; z-index: 2; border-radius: 0 var(--r-pill) var(--r-pill) 0;
+  background: var(--border); overflow: hidden;
+}
+.ptile-link.charged {
+  background: linear-gradient(180deg, var(--navy-light), var(--cobalt));
+  box-shadow: 0 0 8px rgba(37, 99, 235, 0.45);
+}
+.ptile-packet {
+  position: absolute; left: -1px; width: 5px; height: 5px; border-radius: 50%;
+  top: 0; opacity: 0;
+  background: var(--cobalt-light); box-shadow: 0 0 8px var(--cobalt-light);
+}
+.ptile-link.live .ptile-packet { animation: packetRunV 1.2s var(--ease-in-out) infinite; }
+.ptile-link.live { animation: conduitGlow 1.4s var(--ease-in-out) infinite; }
+
+.ptile-ix { transition: all var(--t-mid) var(--ease-out); }
+.ptile.is-done .ptile-ix { color: #fff; background: var(--navy-light); border-color: var(--navy-light); }
+.ptile.active .ptile-ix { box-shadow: 0 0 0 4px var(--cobalt-soft); }
+.ptile-name { display: flex; align-items: center; gap: 7px; }
+.ptile-lock { display: inline-flex; color: var(--c); }
+.ptile-lock svg { width: 12px; height: 12px; }
+.ptile-foot { align-items: center; }
+.chip.flow { color: var(--muted); border-color: transparent; background: transparent; padding: 2px 2px; font-size: var(--fs-sm); }
+.ptile.active .chip.flow { color: var(--cobalt-light); }
+
+/* gated stage — confident hazard-guardrail treatment (Buyer Contact Finder) */
+.ptile.is-gated {
+  border-color: rgba(245, 158, 11, 0.4);
+  background:
+    repeating-linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0 7px, transparent 7px 16px),
+    var(--card-solid);
+}
+.ptile.is-gated::before {
+  content: ""; position: absolute; top: 0; left: 0; right: 0; height: 3px; z-index: 1;
+  background: repeating-linear-gradient(90deg, var(--c) 0 9px, rgba(245, 158, 11, 0.25) 9px 18px);
+  animation: none;
+}
+.ptile.is-gated:hover { border-color: var(--c); }
+.ptile.is-gated.is-selected { border-color: var(--c); box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.5), 0 0 22px rgba(245, 158, 11, 0.18); }
+.ptile.is-gated.is-selected::after { background: var(--c); }
+.ptile.is-gated .ptile-ix { border-color: rgba(245, 158, 11, 0.4); color: var(--c); }
+
+/* ── AGENT CONFIGURATION CARD — instrument shelf ledger ───────────── */
+.cfg-card-strip {
+  display: flex; align-items: center; gap: 11px; margin-bottom: 14px;
+  padding: 10px 13px; border-radius: var(--r-md);
+  background: linear-gradient(135deg, rgba(37, 99, 235, 0.12), var(--bg));
+  border: 1px solid var(--cobalt-line); box-shadow: var(--sh-1);
+}
+.cfg-card-strip-id {
+  font-family: var(--font-mono); font-size: var(--fs-sm); font-weight: 700;
+  letter-spacing: 0.06em; color: var(--cobalt-light);
+  padding: 3px 9px; border-radius: var(--r-sm);
+  background: var(--bg); border: 1px solid var(--cobalt-line);
+}
+.cfg-card-strip-label { font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--muted); letter-spacing: 0.10em; text-transform: uppercase; }
+.cfg-card-strip-state {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 7px;
+  font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600;
+  letter-spacing: 0.06em; color: var(--muted); white-space: nowrap;
+}
+.cfg-card-strip-state .ptile-badge-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.cfg-card-strip-state.active { color: var(--cobalt-light); }
+.cfg-card-strip-state.active .ptile-badge-dot { box-shadow: 0 0 8px var(--cobalt-light); animation: pulse-dot 1.2s var(--ease-in-out) infinite; }
+.cfg-card-strip-state.done { color: var(--success); }
+.cfg-card-strip-state.gated { color: var(--c); }
+
+/* numbered shelf ledger — a counter spine down the Configuration Card */
+.cfg-card { counter-reset: shelf; }
+.cfg-card .cfg-io { counter-reset: none; }
+.cfg-shelf { position: relative; counter-increment: shelf; transition: border-color var(--t-fast) var(--ease-out); }
+.cfg-shelf:hover { border-color: var(--border-strong); }
+.cfg-shelf .bf-label { padding-left: 26px; }
+.cfg-shelf .bf-label::before {
+  content: counter(shelf, decimal-leading-zero);
+  position: absolute; left: 12px; top: 12px;
+  font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600;
+  color: var(--muted); letter-spacing: 0.02em;
+}
+/* the I/O pair shares one ledger index visually; offset its inner labels back */
+.cfg-io .cfg-shelf .bf-label { padding-left: 0; }
+.cfg-io .cfg-shelf .bf-label::before { content: none; }
+.cfg-shelf-flag {
+  margin-left: auto; font-family: var(--font-mono); font-size: var(--fs-2xs); font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 8px; border-radius: var(--r-pill);
+  color: var(--cobalt-light); background: var(--cobalt-soft); border: 1px solid var(--cobalt-line);
+}
+.cfg-shelf-flag.warn { color: var(--c); background: rgba(245, 158, 11, 0.1); border-color: rgba(245, 158, 11, 0.35); }
+.cfg-shelf-live { border-color: var(--cobalt-line); background: linear-gradient(135deg, rgba(37, 99, 235, 0.07), var(--panel)); }
+/* LOCKED guardrail shelf — distinct, unmistakable */
+.cfg-shelf-locked {
+  border-color: rgba(245, 158, 11, 0.35);
+  background:
+    repeating-linear-gradient(135deg, rgba(245, 158, 11, 0.05) 0 6px, transparent 6px 14px),
+    var(--panel);
+}
+.cfg-shelf-locked .bf-label svg { color: var(--c); }
+.cfg-shelf-locked .bf-label::before { color: var(--c); }
+.cfg-list.locked li svg { animation: lockPulse 2.4s var(--ease-in-out) infinite; }
+
+/* tactile chip press feedback on the configuration controls */
+.cfg-chip:active { animation: chipPop var(--t-fast) var(--ease-spring); }
+.cfg-chip.on { box-shadow: 0 1px 6px rgba(37, 99, 235, 0.25), inset 0 0 0 1px rgba(59, 130, 246, 0.15); }
+
+/* ── INSPECTOR TILE-MODE CHROME ───────────────────────────────────── */
+.insp-kicker {
+  font-family: var(--font-mono); font-size: var(--fs-2xs); color: var(--cobalt-light);
+  letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 4px;
+  display: inline-flex; align-items: center; gap: 7px;
+}
+.insp-kicker::before { content: ""; width: 12px; height: 1px; background: var(--cobalt); display: inline-block; }
+.insp-tile-ic { position: relative; }
+.insp-tile-ic::before, .insp-tile-ic::after {
+  content: ""; position: absolute; width: 8px; height: 8px; pointer-events: none;
+  border-color: var(--cobalt-line); border-style: solid;
+}
+.insp-tile-ic::before { top: -3px; left: -3px; border-width: 1px 0 0 1px; border-radius: 3px 0 0 0; }
+.insp-tile-ic::after  { bottom: -3px; right: -3px; border-width: 0 1px 1px 0; border-radius: 0 0 3px 0; }
+.insp-tile-ic.gated {
+  color: var(--c); border-color: rgba(245, 158, 11, 0.4);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14), var(--panel));
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.3), 0 0 22px rgba(245, 158, 11, 0.16);
+}
+.insp-tile-ic.gated::before, .insp-tile-ic.gated::after { border-color: rgba(245, 158, 11, 0.45); }
+
 /* ───────────────────────── responsive ───────────────────────── */
 @media (max-width: 1180px) {
   .app { grid-template-columns: var(--sidebar-w) 1fr; grid-template-areas: "sidebar topbar" "sidebar main"; }
@@ -877,6 +1241,9 @@ a:hover { text-decoration: underline; }
   .insp-x { display: grid; }
   .cfg-summary-grid { grid-template-columns: 1fr; }
   .cfg-io { grid-template-columns: 1fr; }
+  /* the I/O pair stacks: restore its own ledger numerals when single-column */
+  .cfg-io .cfg-shelf .bf-label { padding-left: 26px; }
+  .cfg-io .cfg-shelf .bf-label::before { content: counter(shelf, decimal-leading-zero); }
   .dash-cols, .term-cols { grid-template-columns: 1fr; }
   .mem-grid { grid-template-columns: 1fr; }
   .cat-grid { grid-template-columns: 1fr; }
